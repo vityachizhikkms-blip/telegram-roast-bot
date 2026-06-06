@@ -1042,9 +1042,66 @@ LOAN_EVASION_ENDINGS = [
     "закрою вопрос, как только вопрос перестанет смотреть на меня с презрением.",
 ]
 
+SELF_OWN_LINES = [
+    "Я сам себя сейчас так хуесошу, что бывшие могут просто сидеть и отдыхать.",
+    "Я не мужик, я ебаный банкомат наоборот: деньги не выдаю, а всасываю и тупо моргаю.",
+    "Мою любовную легенду уже ебет жизнь, долги, Камри и моя тупая ревность, а я стою рядом и называю это отношениями.",
+    "Я хотел быть альфой, а стал альфа-версией должника: багов дохуя, денег нихуя.",
+    "Я такой еблан, что если меня посадить сторожить любовь, я проебу и любовь, и табуретку, и сдачу за пиво.",
+    "Пока я изображаю мужика, мой здравый смысл лежит на полу и просит не называть его знакомым.",
+    "Я не просто обосрался, я сделал это с архитектурой, сроками и финансовой отчетностью.",
+    "Меня не надо топить: я сам прыгаю в унитаз репутации и еще требую аплодисментов.",
+    "Я свою жизнь веду как кривую переписку: лишнее удаляю, нужное теряю, потом ору, что меня подставили.",
+    "Моя верность такая же стабильная, как мои выплаты: все слышали обещание, результата никто не видел.",
+    "Я ебаный хранитель барной стойки: охраняю любовь от всех, кроме собственного позора.",
+    "Если бы тупость давала зарплату, я бы уже вернул всем деньги и купил Камри обратно, сука.",
+]
+
+PROMISE_STEPS = [
+    "на следующей неделе железно",
+    "вообще-то я говорил к концу месяца, не переобувайте мои слова, я сам их переобую",
+    "после зарплаты отдам, зарплата уже почти идет, просто идет как я на работу: пиздец медленно",
+    "банк тупит, карта тупит, я туплю, но виноват почему-то опять не я",
+    "после смены в баре решу, я там типа охрана, хотя больше похож на мебель с долгами",
+    "как только Малмыж/завод/железка подтвердят мой мифический трудовой подвиг",
+    "когда Бэлла перестанет хранить скрины, а Кристина перестанет смотреть как налоговая",
+    "когда Камри простит меня за этот финансовый цирк",
+]
+
+TRAP_REPLIES = {
+    "debt": [
+        "Опять долг? Ну заебали, я же сказал: деньги почти пришли. Они просто увидели меня и легли обратно.",
+        "Ты кнопку нажал как коллектор, а я сразу вспотел как еблан на собеседовании, куда сам не пришел.",
+        "Долг есть, совести нет, зато отмазка свежая: зарплата будет после следующей следующей недели.",
+    ],
+    "screen": [
+        "Скрин? Нахуй скрин. Скрины это визуальная провокация, особенно когда там я сам себя палю.",
+        "Не показывайте скрины, там факты, а факты против меня работают как Бэлла с архивом.",
+        "Скрин можно обрезать, но не настолько, чтобы я перестал быть ебаным клоуном.",
+    ],
+    "camry": [
+        "Камри не трогай. Она и так пережила меня, штрафстоянку, продажу и финансовый цирк с Бэллой.",
+        "Камри была машиной, потом стала уликой, потом легендой, а потом просто уехала от моего пиздеца.",
+        "Если Камри заговорит, я сяду не в тюрьму, а в музей долбоебизма.",
+    ],
+    "bella": [
+        "Бэллу не зовите, у нее скрины, память и лицо человека, который видел мой пиздеж без фильтра.",
+        "Если Бэлла зайдет в чат, я сразу вспомню Хабаровск, учебку и еще пять способов не отдавать 25 тысяч.",
+        "Бэлла это не бывшая, это архивный сервер моего позора.",
+    ],
+    "voice": [
+        "Голосовое? Хуй там. Аудио потом не обрежешь так, чтобы я выглядел красавчиком.",
+        "Я голосовые боюсь: там слышно, как мой пиздеж потеет и просит удалить половину.",
+        "На голосе я сам себя сдам быстрее, чем Камри уехала в легенду.",
+    ],
+}
+
 
 def serg_generated_reply() -> str:
-    return f"{random.choice(SERG_REPLY_OPENERS)}. {random.choice(SERG_REPLY_CONTEXTS)}, {random.choice(SERG_REPLY_ENDINGS)}"
+    return (
+        f"{random.choice(SERG_REPLY_OPENERS)}. {random.choice(SERG_REPLY_CONTEXTS)}, "
+        f"{random.choice(SERG_REPLY_ENDINGS)}\n\n{random.choice(SELF_OWN_LINES)}"
+    )
 
 
 def serg_generated_conflict_reply() -> str:
@@ -1054,6 +1111,24 @@ def serg_generated_conflict_reply() -> str:
 
 def loan_generated_evasion() -> str:
     return f"{random.choice(LOAN_EVASION_OPENERS)}: {random.choice(LOAN_EVASION_REASONS)}, {random.choice(LOAN_EVASION_ENDINGS)}"
+
+
+def debt_lie_with_promise(previous: str | None = None) -> tuple[str, str]:
+    promise = random.choice(PROMISE_STEPS)
+    return debt_lie_text(promise, previous), promise
+
+
+def debt_lie_text(promise: str, previous: str | None = None) -> str:
+    if previous:
+        return (
+            f"Да, я раньше говорил '{previous}', но вы, ебланы, не поняли юридическую глубину моего пиздежа.\n"
+            f"Теперь актуальная версия: {promise}.\n\n"
+            f"{loan_generated_evasion()}\n\n{random.choice(SELF_OWN_LINES)}"
+        )
+    return (
+        f"Записывайте, пока я сам не переобулся: {promise}.\n\n"
+        f"{loan_generated_evasion()}\n\n{random.choice(SELF_OWN_LINES)}"
+    )
 
 
 STORY_EXES = [
@@ -1232,6 +1307,24 @@ def topic_fact(topic: str) -> str:
     return random.choice(facts) if facts else random.choice(FIRST_PERSON_LORE_FACTS)
 
 
+def natural_state_line(mood: str, scene: str) -> str:
+    mood_line = mood
+    if mood_line.startswith("Сегодня я "):
+        mood_line = "Я сегодня " + mood_line[len("Сегодня я "):]
+    elif mood_line.startswith("Сегодня у меня "):
+        mood_line = "У меня сегодня " + mood_line[len("Сегодня у меня "):]
+    elif mood_line.startswith("Сегодня меня "):
+        mood_line = "Меня сегодня " + mood_line[len("Сегодня меня "):]
+    scene_line = scene.replace("сюжет дня: ", "у меня опять ")
+    return random.choice(
+        [
+            f"{mood_line} Так что если я сейчас несу хуйню, это не баг, это мой обычный пиздец.",
+            f"Короче, {scene_line}, и я, как обычно, сам себе главный враг.",
+            f"{mood_line} И да, я понимаю, что выгляжу как еблан, просто уже поздно делать вид, что нет.",
+        ]
+    )
+
+
 def serg_contextual_reply(
     topic: str,
     state: sqlite3.Row,
@@ -1239,12 +1332,15 @@ def serg_contextual_reply(
     addressed_name: str = "",
     profile: sqlite3.Row | None = None,
     thread: sqlite3.Row | None = None,
+    previous_promise: str | None = None,
+    current_promise: str | None = None,
 ) -> str:
     mood, scene = state_text(state)
     name_part = f"{addressed_name}, " if addressed_name else ""
     snippet = context_snippet(memory, topic)
     if topic == "debt":
-        body = f"{loan_generated_evasion()}\n\n{topic_fact('debt')}"
+        body = debt_lie_text(current_promise or random.choice(PROMISE_STEPS), previous_promise)
+        body = f"{body}\n\n{topic_fact('debt')}"
     elif topic == "camry":
         body = f"{topic_fact('camry')}. {random.choice(STORY_CAMRY_BITS)}. И да, я опять не виноват, я просто рядом стоял с лицом финансового ДТП."
     elif topic == "work":
@@ -1265,11 +1361,12 @@ def serg_contextual_reply(
     if thread:
         extra.append(heat_phrase(thread["heat"]))
     extra_text = ("\n" + "\n".join(part for part in extra if part)) if extra else ""
+    state_line = natural_state_line(mood, scene) if random.random() < 0.55 else ""
+    state_text_block = f"\n{state_line}" if state_line else ""
     return (
         f"{name_part}{body}\n\n"
         f"{snippet}\n"
-        f"Состояние дня: {mood}\n"
-        f"Мини-сюжет: {scene}"
+        f"{state_text_block}"
         f"{extra_text}"
     )
 
@@ -1513,6 +1610,18 @@ def connect() -> sqlite3.Connection:
             payload TEXT,
             due_at INTEGER NOT NULL,
             done INTEGER NOT NULL DEFAULT 0
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS seriy_promises (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            chat_id INTEGER NOT NULL,
+            user_id INTEGER,
+            full_name TEXT,
+            promise_text TEXT NOT NULL,
+            created_at INTEGER NOT NULL
         )
         """
     )
@@ -1770,12 +1879,12 @@ def bump_thread(conn: sqlite3.Connection, message: Message, topic: str, amount: 
 
 def heat_phrase(heat: int) -> str:
     if heat >= 9:
-        return "Уровень конфликта: я уже ору, вру, потею и топлю себя как профессиональный долбоеб."
+        return "Меня уже несет: я ору, вру, потею и топлю себя как профессиональный долбоеб."
     if heat >= 6:
-        return "Уровень конфликта: пошла грязная перепалка, я уже сам не вывожу, но продолжаю."
+        return "Пошла грязная перепалка, я уже сам не вывожу, но продолжаю, потому что еблан не умеет вовремя заткнуться."
     if heat >= 3:
-        return "Уровень конфликта: я начинаю дерзить, потому что фактов против меня слишком дохуя."
-    return "Уровень конфликта: пока разминаюсь, но уже готов обосраться уверенно."
+        return "Я начинаю дерзить, потому что фактов против меня слишком дохуя, а мозгов их пережить маловато."
+    return "Я пока разминаюсь, но уже готов обосраться уверенно."
 
 
 def profile_phrase(profile: sqlite3.Row | None) -> str:
@@ -1834,7 +1943,7 @@ def too_similar(text: str, previous: list[str]) -> bool:
     return False
 
 
-async def reply_unique(message: Message, factory) -> None:
+async def reply_unique(message: Message, factory, **kwargs) -> None:
     with connect() as conn:
         previous = recent_responses(conn, message.chat.id)
     text = factory()
@@ -1844,10 +1953,10 @@ async def reply_unique(message: Message, factory) -> None:
         text = factory()
     with connect() as conn:
         remember_response(conn, message.chat.id, text)
-    await reply_alive(message, text)
+    await reply_alive(message, text, **kwargs)
 
 
-async def answer_unique(message: Message, factory) -> None:
+async def answer_unique(message: Message, factory, **kwargs) -> None:
     with connect() as conn:
         previous = recent_responses(conn, message.chat.id)
     text = factory()
@@ -1857,7 +1966,7 @@ async def answer_unique(message: Message, factory) -> None:
         text = factory()
     with connect() as conn:
         remember_response(conn, message.chat.id, text)
-    await answer_alive(message, text)
+    await answer_alive(message, text, **kwargs)
 
 
 def schedule_event(conn: sqlite3.Connection, chat_id: int, event_type: str, payload: dict, delay_seconds: int) -> None:
@@ -1886,6 +1995,70 @@ def due_events(conn: sqlite3.Connection) -> list[sqlite3.Row]:
 def mark_event_done(conn: sqlite3.Connection, event_id: int) -> None:
     conn.execute("UPDATE seriy_events SET done = 1 WHERE id = ?", (event_id,))
     conn.commit()
+
+
+def trap_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="🧾 Где бабки?", callback_data="trap:debt"),
+                InlineKeyboardButton(text="📸 Покажи скрин", callback_data="trap:screen"),
+            ],
+            [
+                InlineKeyboardButton(text="🚗 Про Камри", callback_data="trap:camry"),
+                InlineKeyboardButton(text="👑 Позвать Бэллу", callback_data="trap:bella"),
+            ],
+            [
+                InlineKeyboardButton(text="🎙 Где голосовое?", callback_data="trap:voice"),
+            ],
+        ]
+    )
+
+
+def record_promise(conn: sqlite3.Connection, chat_id: int, user_id: int | None, full_name: str | None, promise: str) -> None:
+    conn.execute(
+        """
+        INSERT INTO seriy_promises(chat_id, user_id, full_name, promise_text, created_at)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (chat_id, user_id, full_name, promise, int(time.time())),
+    )
+    conn.execute(
+        """
+        DELETE FROM seriy_promises
+        WHERE chat_id = ?
+          AND id NOT IN (
+              SELECT id FROM seriy_promises
+              WHERE chat_id = ?
+              ORDER BY created_at DESC
+              LIMIT 60
+          )
+        """,
+        (chat_id, chat_id),
+    )
+    conn.commit()
+
+
+def last_promise(conn: sqlite3.Connection, chat_id: int, user_id: int | None = None) -> sqlite3.Row | None:
+    if user_id:
+        return conn.execute(
+            """
+            SELECT * FROM seriy_promises
+            WHERE chat_id = ? AND user_id = ?
+            ORDER BY created_at DESC
+            LIMIT 1
+            """,
+            (chat_id, user_id),
+        ).fetchone()
+    return conn.execute(
+        """
+        SELECT * FROM seriy_promises
+        WHERE chat_id = ?
+        ORDER BY created_at DESC
+        LIMIT 1
+        """,
+        (chat_id,),
+    ).fetchone()
 
 
 def event_text(row: sqlite3.Row) -> str:
@@ -2992,6 +3165,36 @@ async def ask_loan_callback(query: CallbackQuery) -> None:
     await send_alive(query.bot, query.message.chat.id, text)
 
 
+@dp.callback_query(F.data.startswith("trap:"))
+async def trap_callback(query: CallbackQuery) -> None:
+    if not query.message or not query.data:
+        return
+    trap = query.data.split(":", 1)[1]
+    await query.answer("Ща я, конечно, красиво переобуюсь.", show_alert=False)
+    previous_promise = None
+    current_promise = None
+    if trap == "debt":
+        current_promise = random.choice(PROMISE_STEPS)
+        with connect() as conn:
+            previous = last_promise(conn, query.message.chat.id, query.from_user.id if query.from_user else None)
+            previous_promise = previous["promise_text"] if previous else None
+            record_promise(
+                conn,
+                query.message.chat.id,
+                query.from_user.id if query.from_user else None,
+                query.from_user.full_name if query.from_user else None,
+                current_promise,
+            )
+    if trap == "debt":
+        text = debt_lie_text(current_promise or random.choice(PROMISE_STEPS), previous_promise)
+    else:
+        text = random.choice(TRAP_REPLIES.get(trap, DIRECT_SERG_REPLIES))
+    text = f"{text}\n\n{random.choice(SELF_OWN_LINES)}"
+    with connect() as conn:
+        remember_response(conn, query.message.chat.id, text)
+    await send_alive(query.bot, query.message.chat.id, text, reply_markup=trap_keyboard())
+
+
 @dp.message(F.text)
 async def score_message(message: Message, bot: Bot) -> None:
     if not message.from_user or message.from_user.is_bot:
@@ -3046,6 +3249,20 @@ async def score_message(message: Message, bot: Bot) -> None:
 
     with connect() as conn:
         upsert_user(conn, message, 0)
+    previous_promise_text = None
+    current_promise = None
+    if topic == "debt":
+        current_promise = random.choice(PROMISE_STEPS)
+        with connect() as conn:
+            previous = last_promise(conn, message.chat.id, message.from_user.id if message.from_user else None)
+            previous_promise_text = previous["promise_text"] if previous else None
+            record_promise(
+                conn,
+                message.chat.id,
+                message.from_user.id if message.from_user else None,
+                display_name(message),
+                current_promise,
+            )
 
     if replies_to_bot(message):
         with connect() as conn:
@@ -3053,7 +3270,17 @@ async def score_message(message: Message, bot: Bot) -> None:
             profile = get_or_create_profile(conn, message, topic)
         await reply_unique(
             message,
-            lambda: serg_contextual_reply(topic, state, memory, display_name(message), profile, thread),
+            lambda: serg_contextual_reply(
+                topic,
+                state,
+                memory,
+                display_name(message),
+                profile,
+                thread,
+                previous_promise_text,
+                current_promise,
+            ),
+            reply_markup=trap_keyboard(),
         )
         return
 
@@ -3064,6 +3291,7 @@ async def score_message(message: Message, bot: Bot) -> None:
         await reply_unique(
             message,
             lambda: serg_contextual_reply("hello", state, memory, display_name(message), profile, thread),
+            reply_markup=trap_keyboard(),
         )
         return
 
@@ -3077,7 +3305,17 @@ async def score_message(message: Message, bot: Bot) -> None:
             profile = get_or_create_profile(conn, message, topic)
         await reply_unique(
             message,
-            lambda: serg_contextual_reply(topic, state, memory, display_name(message), profile, thread),
+            lambda: serg_contextual_reply(
+                topic,
+                state,
+                memory,
+                display_name(message),
+                profile,
+                thread,
+                previous_promise_text,
+                current_promise,
+            ),
+            reply_markup=trap_keyboard(),
         )
         return
 
@@ -3087,7 +3325,17 @@ async def score_message(message: Message, bot: Bot) -> None:
             profile = get_or_create_profile(conn, message, topic)
         await reply_unique(
             message,
-            lambda: serg_contextual_reply(topic, state, memory, display_name(message), profile, thread),
+            lambda: serg_contextual_reply(
+                topic,
+                state,
+                memory,
+                display_name(message),
+                profile,
+                thread,
+                previous_promise_text,
+                current_promise,
+            ),
+            reply_markup=trap_keyboard(),
         )
         return
 
