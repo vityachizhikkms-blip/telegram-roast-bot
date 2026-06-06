@@ -1,8 +1,10 @@
 import asyncio
 import os
+import random
 import re
 import signal
 import sqlite3
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -25,6 +27,7 @@ WEBHOOK_URL = (
 )
 WEBHOOK_PATH = os.getenv("WEBHOOK_PATH", "/webhook").strip() or "/webhook"
 PORT = int(os.getenv("PORT", "10000"))
+IDLE_ROAST_MINUTES = int(os.getenv("IDLE_ROAST_MINUTES", "45"))
 
 if not BOT_TOKEN:
     raise RuntimeError("BOT_TOKEN is empty. Put your BotFather token into .env")
@@ -127,6 +130,19 @@ COMBO_REPLIES = [
     "Чат тряхнуло так, что Виртуальный Серега временно стал умнее, но быстро проебал эффект.",
 ]
 
+IDLE_ROASTS = [
+    "Хули вы утихли, уебаны? Виртуальный Серега где-то сидит, дрочит на свои провалы и ждет движуху.",
+    "Чат сдох или вы все ушли думать? Виртуальный Серега тоже пытался думать, но, как обычно, обосрался.",
+    "Алло, живые есть? А то тишина такая, будто Виртуальный Серега опять объясняет очевидное.",
+    "Вы чего притихли, культурные стали? Виртуальный Серега уже плачет: без вашего срача он чувствует себя умным.",
+    "Хватит молчать, чат. Виртуальный Серега от скуки начал спорить с дверью и проигрывает.",
+    "Тишина подозрительная. Где мат, где срач, где очередной Серегин мысленный проеб?",
+    "Чат, просыпайся. Виртуальный Серега уже третий раз за час наступил на одну и ту же мысль.",
+    "Ну и хули тут кладбище? Напишите что-нибудь, пока Виртуальный Серега не объявил себя главным интеллектуалом.",
+    "Проверка связи: кто живой, тот матерится. Виртуальный Серега, конечно, не считается, он завис на загрузке мозга.",
+    "Слишком тихо. Где-то Виртуальный Серега решил, что это из-за его авторитета. Нельзя такое допускать.",
+]
+
 
 def connect() -> sqlite3.Connection:
     conn = sqlite3.connect(DATABASE_PATH)
@@ -153,6 +169,17 @@ def connect() -> sqlite3.Connection:
             user_id INTEGER NOT NULL,
             item_code TEXT NOT NULL,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS chat_settings (
+            chat_id INTEGER PRIMARY KEY,
+            title TEXT,
+            idle_roast_enabled INTEGER NOT NULL DEFAULT 0,
+            last_seen_at INTEGER NOT NULL DEFAULT 0,
+            last_roast_at INTEGER NOT NULL DEFAULT 0
         )
         """
     )
@@ -233,6 +260,57 @@ def top_users(conn: sqlite3.Connection, chat_id: int, limit: int = 10) -> list[s
     ).fetchall()
 
 
+def touch_chat(conn: sqlite3.Connection, message: Message) -> None:
+    title = message.chat.title or getattr(message.chat, "full_name", None) or str(message.chat.id)
+    now = int(time.time())
+    conn.execute(
+        """
+        INSERT INTO chat_settings(chat_id, title, last_seen_at)
+        VALUES (?, ?, ?)
+        ON CONFLICT(chat_id) DO UPDATE SET
+            title = excluded.title,
+            last_seen_at = excluded.last_seen_at
+        """,
+        (message.chat.id, title, now),
+    )
+    conn.commit()
+
+
+def set_idle_roast(conn: sqlite3.Connection, message: Message, enabled: bool) -> None:
+    touch_chat(conn, message)
+    conn.execute(
+        "UPDATE chat_settings SET idle_roast_enabled = ? WHERE chat_id = ?",
+        (1 if enabled else 0, message.chat.id),
+    )
+    conn.commit()
+
+
+def idle_roast_chats(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    min_interval = IDLE_ROAST_MINUTES * 60
+    now = int(time.time())
+    return conn.execute(
+        """
+        SELECT * FROM chat_settings
+        WHERE idle_roast_enabled = 1
+          AND ? - last_seen_at >= ?
+          AND ? - last_roast_at >= ?
+        """,
+        (now, min_interval, now, min_interval),
+    ).fetchall()
+
+
+async def is_chat_admin(bot: Bot, message: Message) -> bool:
+    if not message.from_user:
+        return False
+    if message.chat.type == "private":
+        return True
+    try:
+        member = await bot.get_chat_member(message.chat.id, message.from_user.id)
+    except Exception:
+        return False
+    return str(member.status) in {"creator", "administrator", "ChatMemberStatus.CREATOR", "ChatMemberStatus.ADMINISTRATOR"}
+
+
 dp = Dispatcher()
 
 
@@ -244,7 +322,10 @@ async def help_command(message: Message) -> None:
         "/rank - твой ранг\n"
         "/top - топ участников\n"
         "/shop - магазин приколов\n"
-        "/buy код - купить прикол для Виртуального Сереги"
+        "/buy код - купить прикол для Виртуального Сереги\n"
+        "/sergey_on - включить автоподъебы, когда чат затих\n"
+        "/sergey_off - выключить автоподъебы\n"
+        "/sergey_ping - проверить автоподъеб сразу"
     )
 
 
@@ -321,10 +402,43 @@ async def buy_command(message: Message) -> None:
     await message.answer(f"{display_name(message)} покупает: {item.title}\n\n{item.text}")
 
 
+@dp.message(Command("sergey_on"))
+async def sergey_on_command(message: Message, bot: Bot) -> None:
+    if not await is_chat_admin(bot, message):
+        await message.answer("Эту кнопку хаоса может нажимать только админ чата.")
+        return
+    with connect() as conn:
+        set_idle_roast(conn, message, True)
+    await message.answer(
+        f"Автоподъебы включены. Если чат затихнет на {IDLE_ROAST_MINUTES} минут, "
+        "Виртуальный Серега получит очередной словесный подзатыльник."
+    )
+
+
+@dp.message(Command("sergey_off"))
+async def sergey_off_command(message: Message, bot: Bot) -> None:
+    if not await is_chat_admin(bot, message):
+        await message.answer("Выключать этот цирк может только админ чата.")
+        return
+    with connect() as conn:
+        set_idle_roast(conn, message, False)
+    await message.answer("Автоподъебы выключены. Виртуальный Серега временно выдохнул, зря конечно.")
+
+
+@dp.message(Command("sergey_ping"))
+async def sergey_ping_command(message: Message, bot: Bot) -> None:
+    if not await is_chat_admin(bot, message):
+        await message.answer("Пинговать Виртуального Серегу может только админ чата.")
+        return
+    await message.answer(random.choice(IDLE_ROASTS))
+
+
 @dp.message(F.text)
 async def score_message(message: Message) -> None:
     if not message.from_user or message.from_user.is_bot:
         return
+    with connect() as conn:
+        touch_chat(conn, message)
     points = score_text(message.text or "")
     if points <= 0:
         with connect() as conn:
@@ -343,9 +457,28 @@ async def score_message(message: Message) -> None:
         )
 
 
+async def idle_roast_loop(bot: Bot) -> None:
+    while True:
+        await asyncio.sleep(60)
+        with connect() as conn:
+            rows = idle_roast_chats(conn)
+            now = int(time.time())
+            for row in rows:
+                try:
+                    await bot.send_message(row["chat_id"], random.choice(IDLE_ROASTS))
+                    conn.execute(
+                        "UPDATE chat_settings SET last_roast_at = ? WHERE chat_id = ?",
+                        (now, row["chat_id"]),
+                    )
+                    conn.commit()
+                except Exception:
+                    pass
+
+
 async def main() -> None:
     Path(DATABASE_PATH).parent.mkdir(parents=True, exist_ok=True)
     bot = Bot(BOT_TOKEN)
+    asyncio.create_task(idle_roast_loop(bot))
 
     if WEBHOOK_URL:
         app = web.Application()

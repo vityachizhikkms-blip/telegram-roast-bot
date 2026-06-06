@@ -45,6 +45,9 @@ python bot.py
 - `/top` - топ участников
 - `/shop` - магазин виртуальных приколов
 - `/buy код` - купить прикол, например `/buy crown`
+- `/sergey_on` - включить автоподъебы, когда чат затих
+- `/sergey_off` - выключить автоподъебы
+- `/sergey_ping` - проверить автоподъеб сразу
 
 ## Как начисляются очки
 
@@ -61,6 +64,7 @@ BOT_TOKEN=твой_токен_от_BotFather
 WEBHOOK_PATH=/webhook
 DATABASE_PATH=bot.db
 SPICY_MODE=true
+IDLE_ROAST_MINUTES=45
 ```
 
 На Render `WEBHOOK_URL` можно не указывать: бот сам возьмет адрес из `RENDER_EXTERNAL_URL`.
