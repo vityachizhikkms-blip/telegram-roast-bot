@@ -43,6 +43,8 @@ python bot.py
 Можно писать обычными фразами:
 
 - `Серега какой у меня ранг`
+- `Серега как дела`
+- `Серега что нового`
 - `Серега дай топ`
 - `Серега топ по себе`
 - `Серега магазин`
@@ -85,6 +87,7 @@ AUTO_ROAST_MAX_HOURS=5
 LOAN_MIN_HOURS=6
 LOAN_MAX_HOURS=12
 SERIY_STUPIDITY_MINUTES=60
+STARTUP_BROADCAST=true
 ```
 
 На Render `WEBHOOK_URL` можно не указывать: бот сам возьмет адрес из `RENDER_EXTERNAL_URL`.
