@@ -11,7 +11,7 @@ from pathlib import Path
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiohttp import web
 from dotenv import load_dotenv
@@ -33,6 +33,8 @@ DAY_END_HOUR = int(os.getenv("DAY_END_HOUR", "23"))
 DAY_UTC_OFFSET = int(os.getenv("DAY_UTC_OFFSET", "10"))
 AUTO_ROAST_MIN_HOURS = int(os.getenv("AUTO_ROAST_MIN_HOURS", "3"))
 AUTO_ROAST_MAX_HOURS = int(os.getenv("AUTO_ROAST_MAX_HOURS", "5"))
+LOAN_MIN_HOURS = int(os.getenv("LOAN_MIN_HOURS", "6"))
+LOAN_MAX_HOURS = int(os.getenv("LOAN_MAX_HOURS", "12"))
 
 if not BOT_TOKEN:
     raise RuntimeError("BOT_TOKEN is empty. Put your BotFather token into .env")
@@ -266,6 +268,42 @@ LORE_FACTS = [
     "Дама из Наринэ видела Серого трезвым. Никто ей не поверил.",
 ]
 
+LOAN_REASONS = [
+    "срочно надо закрыть финансовую дыру после 'одного пива'",
+    "на такси до здравого смысла, но водитель уже сомневается",
+    "на пиво, но Серый клянется, что это инвестиция",
+    "на подарок бывшей, чтобы она перестала орать хотя бы до вечера",
+    "на закрытие долга, который он взял, чтобы закрыть прошлый долг",
+    "на айфон, который он 'почти уже купил всем'",
+    "на лечение похмельной гордости",
+    "на срочный перевод Кристине 'чисто по-дружески'",
+    "на Бэллу, такси, Наринэ и еще какую-то хуйню, которую он сам не понял",
+    "на моральную компенсацию самому себе за то, что он Серый",
+]
+
+LOAN_BRAGS = [
+    (
+        "Братишка Серый передает: деньги ему уже нахуй не нужны.\n"
+        "У него, оказывается, дохуя денег, все хорошо, он всем купил по айфону, пьет пиво и еще может тебя угостить.\n"
+        "Долг, конечно, он не вернул, потому что 'это другое'."
+    ),
+    (
+        "Серый внезапно разбогател.\n"
+        "Говорит, что ваши копейки ему нахуй не упали, он уже всем заказал айфоны, просто курьер тупит.\n"
+        "Пиво пьет, долг не помнит, уверенность как у миллиардера с чужими 500 рублями."
+    ),
+    (
+        "Финансовый отчет Серого: 'Я никому не должен, это вы мне должны за мое присутствие'.\n"
+        "Деньги ему больше не нужны, потому что он 'на мутках'.\n"
+        "Мутки, судя по всему, опять оплатил кто-то из чата."
+    ),
+    (
+        "Серый сообщает, что вопрос закрыт.\n"
+        "Он богат, красив, пьет пиво и всем купил по айфону в параллельной реальности.\n"
+        "Кто занял — тот, по версии Серого, просто участвовал в благотворительности."
+    ),
+]
+
 WELCOME_TEXT = (
     "Ну че, дебилы, бот зашел в чат.\n\n"
     "Я считаю мат, выдаю очки, ранги и кринж-награды из жизни Братишки Серого.\n"
@@ -286,7 +324,8 @@ WELCOME_TEXT = (
     "/lore — факт из жизни Серого\n"
     "/sergey_on — включить автоподъебы\n"
     "/sergey_off — выключить\n"
-    "/sergey_ping — пнуть чат сразу"
+    "/sergey_ping — пнуть чат сразу\n"
+    "/loan_ping — запустить займ Серого с кнопками"
 )
 
 
@@ -334,14 +373,16 @@ def connect() -> sqlite3.Connection:
             idle_roast_enabled INTEGER NOT NULL DEFAULT 0,
             last_seen_at INTEGER NOT NULL DEFAULT 0,
             last_roast_at INTEGER NOT NULL DEFAULT 0,
-            next_roast_at INTEGER NOT NULL DEFAULT 0
+            next_roast_at INTEGER NOT NULL DEFAULT 0,
+            next_loan_at INTEGER NOT NULL DEFAULT 0
         )
         """
     )
-    try:
-        conn.execute("ALTER TABLE chat_settings ADD COLUMN next_roast_at INTEGER NOT NULL DEFAULT 0")
-    except sqlite3.OperationalError:
-        pass
+    for column in ("next_roast_at", "next_loan_at"):
+        try:
+            conn.execute(f"ALTER TABLE chat_settings ADD COLUMN {column} INTEGER NOT NULL DEFAULT 0")
+        except sqlite3.OperationalError:
+            pass
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS ex_rewards (
@@ -360,7 +401,42 @@ def connect() -> sqlite3.Connection:
             chat_id INTEGER PRIMARY KEY,
             debt INTEGER NOT NULL DEFAULT 0,
             humiliation_count INTEGER NOT NULL DEFAULT 0,
-            excuse_count INTEGER NOT NULL DEFAULT 0
+            excuse_count INTEGER NOT NULL DEFAULT 0,
+            borrowed_total INTEGER NOT NULL DEFAULT 0,
+            loan_count INTEGER NOT NULL DEFAULT 0
+        )
+        """
+    )
+    for column in ("borrowed_total", "loan_count"):
+        try:
+            conn.execute(f"ALTER TABLE seriy_stats ADD COLUMN {column} INTEGER NOT NULL DEFAULT 0")
+        except sqlite3.OperationalError:
+            pass
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS seriy_loans (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            chat_id INTEGER NOT NULL,
+            amount INTEGER NOT NULL,
+            reason TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'active',
+            created_at INTEGER NOT NULL,
+            due_at INTEGER NOT NULL,
+            resolved_at INTEGER
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS loan_lenders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            loan_id INTEGER NOT NULL,
+            chat_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            full_name TEXT NOT NULL,
+            amount INTEGER NOT NULL,
+            created_at INTEGER NOT NULL,
+            UNIQUE(loan_id, user_id)
         )
         """
     )
@@ -480,6 +556,12 @@ def random_roast_delay() -> int:
     return random.randint(min_seconds, max_seconds)
 
 
+def random_loan_delay() -> int:
+    min_seconds = LOAN_MIN_HOURS * 60 * 60
+    max_seconds = LOAN_MAX_HOURS * 60 * 60
+    return random.randint(min_seconds, max_seconds)
+
+
 def now_in_day_window() -> bool:
     tz = timezone(timedelta(hours=DAY_UTC_OFFSET))
     hour = datetime.now(tz).hour
@@ -506,10 +588,16 @@ def touch_chat(conn: sqlite3.Connection, message: Message) -> None:
 
 def set_idle_roast(conn: sqlite3.Connection, message: Message, enabled: bool) -> None:
     touch_chat(conn, message)
-    next_roast_at = int(time.time()) + random_roast_delay() if enabled else 0
+    now = int(time.time())
+    next_roast_at = now + random_roast_delay() if enabled else 0
+    next_loan_at = now + random_loan_delay() if enabled else 0
     conn.execute(
-        "UPDATE chat_settings SET idle_roast_enabled = ?, next_roast_at = ? WHERE chat_id = ?",
-        (1 if enabled else 0, next_roast_at, message.chat.id),
+        """
+        UPDATE chat_settings
+        SET idle_roast_enabled = ?, next_roast_at = ?, next_loan_at = ?
+        WHERE chat_id = ?
+        """,
+        (1 if enabled else 0, next_roast_at, next_loan_at, message.chat.id),
     )
     conn.commit()
 
@@ -524,6 +612,32 @@ def idle_roast_chats(conn: sqlite3.Connection) -> list[sqlite3.Row]:
         WHERE idle_roast_enabled = 1
           AND next_roast_at > 0
           AND next_roast_at <= ?
+        """,
+        (now,),
+    ).fetchall()
+
+
+def loan_chats(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    now = int(time.time())
+    if not now_in_day_window():
+        return []
+    return conn.execute(
+        """
+        SELECT * FROM chat_settings
+        WHERE idle_roast_enabled = 1
+          AND next_loan_at > 0
+          AND next_loan_at <= ?
+        """,
+        (now,),
+    ).fetchall()
+
+
+def due_loans(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    now = int(time.time())
+    return conn.execute(
+        """
+        SELECT * FROM seriy_loans
+        WHERE status = 'active' AND due_at <= ?
         """,
         (now,),
     ).fetchall()
@@ -598,6 +712,137 @@ def seriy_stats(conn: sqlite3.Connection, chat_id: int) -> sqlite3.Row:
     )
     conn.commit()
     return conn.execute("SELECT * FROM seriy_stats WHERE chat_id = ?", (chat_id,)).fetchone()
+
+
+def create_loan(conn: sqlite3.Connection, chat_id: int) -> sqlite3.Row:
+    now = int(time.time())
+    amount = random.randrange(100, 5001, 100)
+    reason = random.choice(LOAN_REASONS)
+    due_at = now + random.randint(20 * 60, 30 * 60)
+    conn.execute(
+        """
+        INSERT INTO seriy_loans(chat_id, amount, reason, created_at, due_at)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (chat_id, amount, reason, now, due_at),
+    )
+    loan_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+    conn.execute(
+        "UPDATE chat_settings SET next_loan_at = ? WHERE chat_id = ?",
+        (now + random_loan_delay(), chat_id),
+    )
+    conn.commit()
+    return conn.execute("SELECT * FROM seriy_loans WHERE id = ?", (loan_id,)).fetchone()
+
+
+def loan_keyboard(loan_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="💸 Занять Серому", callback_data=f"lend:{loan_id}"),
+                InlineKeyboardButton(text="🧾 Спросить долг", callback_data=f"ask:{loan_id}"),
+            ]
+        ]
+    )
+
+
+def loan_request_text(loan: sqlite3.Row) -> str:
+    return (
+        f"Братишка Серый просит занять {loan['amount']} ₽.\n\n"
+        f"Причина: {loan['reason']}.\n\n"
+        "Кто выручит финансового гения? Жмите кнопку, потом будете с него спрашивать эту хуйню."
+    )
+
+
+def loan_lenders(conn: sqlite3.Connection, loan_id: int) -> list[sqlite3.Row]:
+    return conn.execute(
+        """
+        SELECT * FROM loan_lenders
+        WHERE loan_id = ?
+        ORDER BY created_at
+        """,
+        (loan_id,),
+    ).fetchall()
+
+
+def loan_by_id(conn: sqlite3.Connection, loan_id: int) -> sqlite3.Row | None:
+    return conn.execute("SELECT * FROM seriy_loans WHERE id = ?", (loan_id,)).fetchone()
+
+
+def add_lender(
+    conn: sqlite3.Connection,
+    loan: sqlite3.Row,
+    user_id: int,
+    full_name: str,
+) -> bool:
+    now = int(time.time())
+    try:
+        conn.execute(
+            """
+            INSERT INTO loan_lenders(loan_id, chat_id, user_id, full_name, amount, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (loan["id"], loan["chat_id"], user_id, full_name, loan["amount"], now),
+        )
+    except sqlite3.IntegrityError:
+        return False
+    conn.execute(
+        """
+        INSERT INTO users(chat_id, user_id, username, full_name, points, messages, toxic_hits)
+        VALUES (?, ?, NULL, ?, 5, 0, 0)
+        ON CONFLICT(chat_id, user_id) DO UPDATE SET
+            full_name = excluded.full_name,
+            points = users.points + 5
+        """,
+        (loan["chat_id"], user_id, full_name),
+    )
+    conn.execute(
+        """
+        INSERT INTO seriy_stats(chat_id, debt, borrowed_total, loan_count)
+        VALUES (?, ?, ?, 1)
+        ON CONFLICT(chat_id) DO UPDATE SET
+            debt = debt + excluded.debt,
+            borrowed_total = borrowed_total + excluded.borrowed_total,
+            loan_count = loan_count + 1
+        """,
+        (loan["chat_id"], loan["amount"], loan["amount"]),
+    )
+    conn.commit()
+    return True
+
+
+def close_loan(conn: sqlite3.Connection, loan_id: int) -> None:
+    now = int(time.time())
+    conn.execute(
+        "UPDATE seriy_loans SET status = 'closed', resolved_at = ? WHERE id = ?",
+        (now, loan_id),
+    )
+    conn.commit()
+
+
+async def send_loan_request(bot: Bot, chat_id: int) -> None:
+    with connect() as conn:
+        loan = create_loan(conn, chat_id)
+    await bot.send_message(chat_id, loan_request_text(loan), reply_markup=loan_keyboard(loan["id"]))
+
+
+async def send_loan_final(bot: Bot, loan: sqlite3.Row) -> None:
+    with connect() as conn:
+        lenders = loan_lenders(conn, loan["id"])
+        close_loan(conn, loan["id"])
+
+    if lenders:
+        names = ", ".join(row["full_name"] for row in lenders)
+        prefix = (
+            f"Финал займа Серого на {loan['amount']} ₽.\n"
+            f"Деньги заняли: {names}.\n\n"
+        )
+    else:
+        prefix = (
+            f"Финал займа Серого на {loan['amount']} ₽.\n"
+            "Ему никто не занял. Он сказал, что вы все жмоты, хотя сам должен половине чата и одному бармену из Наринэ.\n\n"
+        )
+    await bot.send_message(loan["chat_id"], prefix + random.choice(LOAN_BRAGS))
 
 
 async def is_chat_admin(bot: Bot, message: Message) -> bool:
@@ -815,6 +1060,69 @@ async def sergey_ping_command(message: Message, bot: Bot) -> None:
     await message.answer(random.choice(IDLE_ROASTS))
 
 
+@dp.message(Command("loan_ping"))
+async def loan_ping_command(message: Message, bot: Bot) -> None:
+    if not await is_chat_admin(bot, message):
+        await message.answer("Запускать финансовый цирк Серого может только админ чата.")
+        return
+    with connect() as conn:
+        touch_chat(conn, message)
+    await send_loan_request(bot, message.chat.id)
+
+
+@dp.callback_query(F.data.startswith("lend:"))
+async def lend_callback(query: CallbackQuery) -> None:
+    if not query.message or not query.from_user or not query.data:
+        return
+    loan_id = int(query.data.split(":", 1)[1])
+    with connect() as conn:
+        loan = loan_by_id(conn, loan_id)
+        if not loan or loan["status"] != "active":
+            await query.answer("Поздно, Серый уже переобулся.", show_alert=True)
+            return
+        ok = add_lender(conn, loan, query.from_user.id, query.from_user.full_name)
+        row = get_user(conn, loan["chat_id"], query.from_user.id)
+
+    if not ok:
+        await query.answer("Ты уже занял Серому. Теперь молись, чтобы он вспомнил.", show_alert=True)
+        return
+
+    await query.answer("Серый записал тебя в список финансово доверчивых.", show_alert=False)
+    await query.message.answer(
+        f"{query.from_user.full_name} занял Братишке Серому {loan['amount']} ₽.\n"
+        f"+5 очков за финансовую наивность | всего: {row['points']}\n"
+        "Серый сказал: 'брат, я завтра железно', и это уже звучит как уголовная сказка."
+    )
+
+
+@dp.callback_query(F.data.startswith("ask:"))
+async def ask_loan_callback(query: CallbackQuery) -> None:
+    if not query.message or not query.data:
+        return
+    loan_id = int(query.data.split(":", 1)[1])
+    with connect() as conn:
+        loan = loan_by_id(conn, loan_id)
+        if not loan:
+            await query.answer("Этот долг исчез так же мутно, как Серые обещания.", show_alert=True)
+            return
+        lenders = loan_lenders(conn, loan_id)
+
+    await query.answer("Серый уже придумывает отмазку.", show_alert=False)
+    if lenders:
+        names = ", ".join(row["full_name"] for row in lenders)
+        text = (
+            f"По займу Серого на {loan['amount']} ₽ уже попали: {names}.\n"
+            f"Текущая отмазка: '{random.choice(EXCUSES)}'\n"
+            "Спросить можно, вернуть почти нереально."
+        )
+    else:
+        text = (
+            f"Серому пока никто не занял {loan['amount']} ₽.\n"
+            "Редкий момент, когда чат оказался умнее Серого."
+        )
+    await query.message.answer(text)
+
+
 @dp.message(F.text)
 async def score_message(message: Message) -> None:
     if not message.from_user or message.from_user.is_bot:
@@ -862,11 +1170,14 @@ async def idle_roast_loop(bot: Bot) -> None:
         await asyncio.sleep(60)
         with connect() as conn:
             rows = idle_roast_chats(conn)
+            loan_rows = loan_chats(conn)
+            due_loan_rows = due_loans(conn)
             now = int(time.time())
-            for row in rows:
-                try:
-                    await bot.send_message(row["chat_id"], random.choice(IDLE_ROASTS))
-                    next_roast_at = now + random_roast_delay()
+        for row in rows:
+            try:
+                await bot.send_message(row["chat_id"], random.choice(IDLE_ROASTS))
+                next_roast_at = now + random_roast_delay()
+                with connect() as conn:
                     conn.execute(
                         """
                         UPDATE chat_settings
@@ -876,8 +1187,18 @@ async def idle_roast_loop(bot: Bot) -> None:
                         (now, next_roast_at, row["chat_id"]),
                     )
                     conn.commit()
-                except Exception:
-                    pass
+            except Exception:
+                pass
+        for row in loan_rows:
+            try:
+                await send_loan_request(bot, row["chat_id"])
+            except Exception:
+                pass
+        for loan in due_loan_rows:
+            try:
+                await send_loan_final(bot, loan)
+            except Exception:
+                pass
 
 
 async def main() -> None:

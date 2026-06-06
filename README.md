@@ -49,6 +49,7 @@ python bot.py
 - `/debt` - долги Серого
 - `/excuse` - тупая отмазка Серого
 - `/lore` - случайный факт из жизни Серого
+- `/loan_ping` - вручную запустить займ Серого с кнопками
 - `/sergey_on` - включить автоподъебы, когда чат затих
 - `/sergey_off` - выключить автоподъебы
 - `/sergey_ping` - проверить автоподъеб сразу
@@ -73,6 +74,8 @@ DAY_END_HOUR=23
 DAY_UTC_OFFSET=10
 AUTO_ROAST_MIN_HOURS=3
 AUTO_ROAST_MAX_HOURS=5
+LOAN_MIN_HOURS=6
+LOAN_MAX_HOURS=12
 ```
 
 На Render `WEBHOOK_URL` можно не указывать: бот сам возьмет адрес из `RENDER_EXTERNAL_URL`.
