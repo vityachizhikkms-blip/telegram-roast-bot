@@ -491,24 +491,24 @@ WELCOME_TEXT = (
     "Навалил хуеву телегу — ловишь ранг, бывшую Серого или семейный пиздец.\n"
     "Хуесосишь Серого по делу — получаешь бонусные очки.\n"
     "Чат затих — я сам вкину, чтобы вы не уснули нахуй.\n\n"
-    "Команды:\n"
-    "/rank — твой ранг\n"
-    "/top — топ токсиков\n"
-    "/seriy_top — топ засаживателей Серого\n"
-    "/shop — магазин приколов\n"
-    "/buy код — купить прикол\n"
-    "/exes — бывшие Серого\n"
-    "/family — дети, ЗАГСы, алименты\n"
-    "/debt — долги Серого\n"
-    "/excuse — тупая отмазка Серого\n"
-    "/lore — факт из жизни Серого\n"
-    "/story — история из жизни Серого\n"
-    "/seriy — позвать Серого, чтобы он нес оправдания\n"
-    "/sergey_on — включить автоподъебы\n"
-    "/sergey_off — выключить\n"
-    "/sergey_ping — пнуть чат сразу\n"
-    "/loan_ping — запустить займ Серого с кнопками\n"
-    "/stupid_ping — выдать тупость Серого сразу"
+    "Пиши по-человечески:\n"
+    "Серега какой у меня ранг — твой ранг\n"
+    "Серега дай топ — топ токсиков\n"
+    "Серега топ по себе — топ засаживателей Серого\n"
+    "Серега магазин — магазин приколов\n"
+    "Серега купи crown — купить прикол\n"
+    "Серега мои бывшие — бывшие Серого\n"
+    "Серега семья — дети, ЗАГСы, алименты\n"
+    "Серега сколько должен — долги Серого\n"
+    "Серега отмазка — тупая отмазка Серого\n"
+    "Серега факт — факт из жизни Серого\n"
+    "Серега расскажи историю — история из жизни Серого\n"
+    "Серега оправдайся — позвать Серого, чтобы он нес хуйню\n"
+    "Серега включи движ — включить автоподъебы\n"
+    "Серега хватит — выключить автоподъебы\n"
+    "Серега пни чат — пнуть чат сразу\n"
+    "Серега займи денег — запустить займ Серого с кнопками\n"
+    "Серега выдай тупость — выдать тупость Серого сразу"
 )
 
 
@@ -681,6 +681,56 @@ def should_seriy_defend(text: str) -> bool:
     if not mentions_seriy(text):
         return False
     return random.random() < 0.45
+
+
+def normalize_text(text: str) -> str:
+    return text.lower().replace("ё", "е")
+
+
+def natural_command(text: str) -> tuple[str | None, str | None]:
+    normalized = normalize_text(text)
+    if not mentions_seriy(normalized):
+        return None, None
+
+    if any(word in normalized for word in ("расскажи историю", "историю", "история")):
+        return "story", None
+    if any(word in normalized for word in ("какой у меня ранг", "мой ранг", "ранг")):
+        return "rank", None
+    if any(phrase in normalized for phrase in ("дай топ", "топ токс", "кто главный", "таблица")):
+        return "top", None
+    if any(phrase in normalized for phrase in ("топ по себе", "топ сер", "кто тебя", "кто серого")):
+        return "seriy_top", None
+    if any(word in normalized for word in ("магазин", "лавка", "что купить")):
+        return "shop", None
+    if any(word in normalized for word in ("мои бывшие", "бывшие", "бывших")):
+        return "exes", None
+    if any(word in normalized for word in ("семья", "загс", "дети", "алименты")):
+        return "family", None
+    if any(phrase in normalized for phrase in ("сколько должен", "долг", "должен")):
+        return "debt", None
+    if any(word in normalized for word in ("отмазка", "оправдание")):
+        return "excuse", None
+    if any(word in normalized for word in ("факт", "лор")):
+        return "lore", None
+    if any(word in normalized for word in ("оправдайся", "ответь", "скажи за себя")):
+        return "seriy", None
+    if any(phrase in normalized for phrase in ("включи движ", "включи авт", "запусти движ", "оживи чат")):
+        return "sergey_on", None
+    if any(phrase in normalized for phrase in ("хватит", "выключи", "останови")) and any(
+        word in normalized for word in ("движ", "авто", "подъеб", "пинки")
+    ):
+        return "sergey_off", None
+    if any(phrase in normalized for phrase in ("пни чат", "разбуди чат", "вкинь", "подъеби чат")):
+        return "sergey_ping", None
+    if any(phrase in normalized for phrase in ("займи денег", "попроси денег", "займ", "одолжи")):
+        return "loan_ping", None
+    if any(phrase in normalized for phrase in ("выдай тупость", "тупость", "про камри", "про бывшую")):
+        return "stupid_ping", None
+    if "купи" in normalized or "купить" in normalized:
+        for item in SHOP:
+            if item.code in normalized:
+                return "buy", item.code
+    return None, None
 
 
 def rank_for(points: int) -> str:
@@ -1107,23 +1157,7 @@ async def is_chat_admin(bot: Bot, message: Message) -> bool:
     return str(member.status) in {"creator", "administrator", "ChatMemberStatus.CREATOR", "ChatMemberStatus.ADMINISTRATOR"}
 
 
-dp = Dispatcher()
-
-
-@dp.message(Command("start", "help"))
-async def help_command(message: Message) -> None:
-    await message.answer(WELCOME_TEXT)
-
-
-@dp.message(F.new_chat_members)
-async def new_chat_members(message: Message, bot: Bot) -> None:
-    me = await bot.get_me()
-    if any(member.id == me.id for member in message.new_chat_members):
-        await message.answer(WELCOME_TEXT)
-
-
-@dp.message(Command("rank"))
-async def rank_command(message: Message) -> None:
+async def answer_rank(message: Message) -> None:
     if not message.from_user:
         return
     with connect() as conn:
@@ -1139,8 +1173,7 @@ async def rank_command(message: Message) -> None:
     )
 
 
-@dp.message(Command("top"))
-async def top_command(message: Message) -> None:
+async def answer_top(message: Message) -> None:
     with connect() as conn:
         rows = top_users(conn, message.chat.id)
     if not rows:
@@ -1148,14 +1181,11 @@ async def top_command(message: Message) -> None:
         return
     lines = ["Топ токсичного угара:"]
     for index, row in enumerate(rows, start=1):
-        lines.append(
-            f"{index}. {row['full_name']} - {row['points']} очк., {rank_for(row['points'])}"
-        )
+        lines.append(f"{index}. {row['full_name']} - {row['points']} очк., {rank_for(row['points'])}")
     await message.answer("\n".join(lines))
 
 
-@dp.message(Command("seriy_top"))
-async def seriy_top_command(message: Message) -> None:
+async def answer_seriy_top(message: Message) -> None:
     with connect() as conn:
         rows = top_seriy_users(conn, message.chat.id)
     if not rows:
@@ -1167,26 +1197,19 @@ async def seriy_top_command(message: Message) -> None:
     await message.answer("\n".join(lines))
 
 
-@dp.message(Command("shop"))
-async def shop_command(message: Message) -> None:
+async def answer_shop(message: Message) -> None:
     lines = ["Магазин виртуальных приколов:"]
     for item in SHOP:
-        lines.append(f"/buy {item.code} - {item.title} ({item.cost} очк.)")
+        lines.append(f"Серега купи {item.code} — {item.title} ({item.cost} очк.)")
     await message.answer("\n".join(lines))
 
 
-@dp.message(Command("buy"))
-async def buy_command(message: Message) -> None:
+async def answer_buy(message: Message, code: str) -> None:
     if not message.from_user:
         return
-    parts = (message.text or "").split(maxsplit=1)
-    if len(parts) < 2:
-        await message.answer("Напиши код покупки. Например: /buy crown")
-        return
-    code = parts[1].strip().lower()
     item = next((entry for entry in SHOP if entry.code == code), None)
     if not item:
-        await message.answer("Такого товара нет. Открой /shop и выбери код.")
+        await message.answer("Такого товара нет. Скажи: Серега магазин — и выбери код.")
         return
 
     with connect() as conn:
@@ -1208,8 +1231,7 @@ async def buy_command(message: Message) -> None:
     await message.answer(f"{display_name(message)} покупает: {item.title}\n\n{item.text}")
 
 
-@dp.message(Command("exes"))
-async def exes_command(message: Message) -> None:
+async def answer_exes(message: Message) -> None:
     if not message.from_user:
         return
     with connect() as conn:
@@ -1229,8 +1251,7 @@ async def exes_command(message: Message) -> None:
     await message.answer("\n".join(lines))
 
 
-@dp.message(Command("family"))
-async def family_command(message: Message) -> None:
+async def answer_family(message: Message) -> None:
     if not message.from_user:
         return
     with connect() as conn:
@@ -1248,8 +1269,7 @@ async def family_command(message: Message) -> None:
     )
 
 
-@dp.message(Command("debt"))
-async def debt_command(message: Message) -> None:
+async def answer_debt(message: Message) -> None:
     with connect() as conn:
         stats = seriy_stats(conn, message.chat.id)
     await message.answer(
@@ -1259,8 +1279,7 @@ async def debt_command(message: Message) -> None:
     )
 
 
-@dp.message(Command("excuse"))
-async def excuse_command(message: Message) -> None:
+async def answer_excuse(message: Message) -> None:
     with connect() as conn:
         conn.execute(
             """
@@ -1274,21 +1293,99 @@ async def excuse_command(message: Message) -> None:
     await message.answer(f"Новая тупая отмазка Серого:\n'{random.choice(EXCUSES)}'")
 
 
-@dp.message(Command("lore"))
-async def lore_command(message: Message) -> None:
+async def answer_lore(message: Message) -> None:
     await message.answer(random.choice(LORE_FACTS))
 
 
-@dp.message(Command("story"))
-async def story_command(message: Message) -> None:
+async def answer_story(message: Message) -> None:
     with connect() as conn:
         story = next_story(conn, message.chat.id)
     await message.answer(story)
 
 
+async def answer_seriy(message: Message) -> None:
+    await message.answer(random.choice(SERIY_DEFENSE_REPLIES))
+
+
+dp = Dispatcher()
+
+
+@dp.message(Command("start", "help"))
+async def help_command(message: Message) -> None:
+    await message.answer(WELCOME_TEXT)
+
+
+@dp.message(F.new_chat_members)
+async def new_chat_members(message: Message, bot: Bot) -> None:
+    me = await bot.get_me()
+    if any(member.id == me.id for member in message.new_chat_members):
+        await message.answer(WELCOME_TEXT)
+
+
+@dp.message(Command("rank"))
+async def rank_command(message: Message) -> None:
+    await answer_rank(message)
+
+
+@dp.message(Command("top"))
+async def top_command(message: Message) -> None:
+    await answer_top(message)
+
+
+@dp.message(Command("seriy_top"))
+async def seriy_top_command(message: Message) -> None:
+    await answer_seriy_top(message)
+
+
+@dp.message(Command("shop"))
+async def shop_command(message: Message) -> None:
+    await answer_shop(message)
+
+
+@dp.message(Command("buy"))
+async def buy_command(message: Message) -> None:
+    if not message.from_user:
+        return
+    parts = (message.text or "").split(maxsplit=1)
+    if len(parts) < 2:
+        await message.answer("Напиши код покупки. Например: /buy crown")
+        return
+    await answer_buy(message, parts[1].strip().lower())
+
+
+@dp.message(Command("exes"))
+async def exes_command(message: Message) -> None:
+    await answer_exes(message)
+
+
+@dp.message(Command("family"))
+async def family_command(message: Message) -> None:
+    await answer_family(message)
+
+
+@dp.message(Command("debt"))
+async def debt_command(message: Message) -> None:
+    await answer_debt(message)
+
+
+@dp.message(Command("excuse"))
+async def excuse_command(message: Message) -> None:
+    await answer_excuse(message)
+
+
+@dp.message(Command("lore"))
+async def lore_command(message: Message) -> None:
+    await answer_lore(message)
+
+
+@dp.message(Command("story"))
+async def story_command(message: Message) -> None:
+    await answer_story(message)
+
+
 @dp.message(Command("seriy"))
 async def seriy_command(message: Message) -> None:
-    await message.answer(random.choice(SERIY_DEFENSE_REPLIES))
+    await answer_seriy(message)
 
 
 @dp.message(Command("sergey_on"))
@@ -1394,12 +1491,50 @@ async def ask_loan_callback(query: CallbackQuery) -> None:
 
 
 @dp.message(F.text)
-async def score_message(message: Message) -> None:
+async def score_message(message: Message, bot: Bot) -> None:
     if not message.from_user or message.from_user.is_bot:
         return
     with connect() as conn:
         touch_chat(conn, message)
     text = message.text or ""
+    command, argument = natural_command(text)
+    if command:
+        if command == "story":
+            await answer_story(message)
+        elif command == "rank":
+            await answer_rank(message)
+        elif command == "top":
+            await answer_top(message)
+        elif command == "seriy_top":
+            await answer_seriy_top(message)
+        elif command == "shop":
+            await answer_shop(message)
+        elif command == "buy" and argument:
+            await answer_buy(message, argument)
+        elif command == "exes":
+            await answer_exes(message)
+        elif command == "family":
+            await answer_family(message)
+        elif command == "debt":
+            await answer_debt(message)
+        elif command == "excuse":
+            await answer_excuse(message)
+        elif command == "lore":
+            await answer_lore(message)
+        elif command == "seriy":
+            await answer_seriy(message)
+        elif command == "sergey_on":
+            await sergey_on_command(message, bot)
+        elif command == "sergey_off":
+            await sergey_off_command(message, bot)
+        elif command == "sergey_ping":
+            await sergey_ping_command(message, bot)
+        elif command == "loan_ping":
+            await loan_ping_command(message, bot)
+        elif command == "stupid_ping":
+            await stupid_ping_command(message, bot)
+        return
+
     points = score_text(text)
     bonus_points, bonus_reply = seriy_bonus(text)
     defense_reply = random.choice(SERIY_DEFENSE_REPLIES) if should_seriy_defend(text) else None
