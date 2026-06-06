@@ -1409,7 +1409,6 @@ def serg_contextual_reply(
 ) -> str:
     mood, scene = state_text(state)
     name_part = f"{serg_address(addressed_username, capitalize=True)}, " if addressed_username is not None else ""
-    snippet = context_snippet(memory, topic)
     if topic == "debt":
         body = debt_lie_text(current_promise or random.choice(PROMISE_STEPS), previous_promise)
         body = f"{body}\n\n{topic_fact('debt')}"
@@ -1425,22 +1424,26 @@ def serg_contextual_reply(
         body = serg_generated_conflict_reply()
     elif topic == "hello":
         body = random.choice(DIRECT_SERG_REPLIES + [serg_generated_reply()])
+        return f"{name_part}{body}"
     else:
-        body = random.choice(SERG_CHATTER + [serg_generated_reply(), generated_serg_story(), generated_bad_invite()])
+        body = random.choice(SERG_CHATTER + [serg_generated_reply(), generated_bad_invite()])
+
+    parts = [f"{name_part}{body}"]
+
+    if topic in {"debt", "camry", "work", "exes", "bar", "insult"} and random.random() < 0.18:
+        parts.append(context_snippet(memory, topic))
+
     extra = []
-    if profile:
+    if profile and topic in {"debt", "insult"} and random.random() < 0.18:
         extra.append(profile_phrase(profile))
-    if thread:
+    if thread and thread["heat"] >= 6 and topic in {"debt", "insult"} and random.random() < 0.22:
         extra.append(heat_phrase(thread["heat"]))
-    extra_text = ("\n" + "\n".join(part for part in extra if part)) if extra else ""
-    state_line = natural_state_line(mood, scene) if random.random() < 0.55 else ""
-    state_text_block = f"\n{state_line}" if state_line else ""
-    return (
-        f"{name_part}{body}\n\n"
-        f"{snippet}\n"
-        f"{state_text_block}"
-        f"{extra_text}"
-    )
+    parts.extend(part for part in extra if part)
+
+    if topic not in {"general", "hello"} and random.random() < 0.12:
+        parts.append(natural_state_line(mood, scene))
+
+    return "\n\n".join(part for part in parts if part)
 
 WELCOME_TEXT = (
     "Ну че, дебилы, это я, Братишка Серый. Я зашел в чат и теперь буду сам себя топить.\n\n"
@@ -1448,10 +1451,10 @@ WELCOME_TEXT = (
     "в разговор, несет хуйню, просит бабки, оправдывается, рассказывает свои тупые приключения и периодически "
     "сам себя закапывает глубже.\n\n"
     "Чат затих — я сам вкину какую-нибудь грязную тупость, чтобы вы не уснули нахуй.\n"
-    "Меня позвали — я сначала печатаю, потом выдаю очередной позорный монолог.\n\n"
+    "Меня просто позвали — я сначала печатаю, потом коротко огрызаюсь.\n\n"
     "Пиши по-человечески:\n"
-    "Серега как дела / че нового / где пропал — я расскажу свежий отчет о своем пиздеце\n"
-    "Серега расскажи историю / навали лор / че было с Камри — я выдам приключение от себя\n"
+    "Серега как дела / че нового / где пропал — я коротко огрызнусь\n"
+    "Серега расскажи историю / навали лор / че было с Камри — я выдам длинное приключение от себя\n"
     "Серега где бабки / сколько должен / когда вернешь — я начну финансово изворачиваться\n"
     "Серега оправдайся / че несешь / ты дебил — я влезу и начну защищаться еще тупее\n"
     "Серега про бывших / кто такая Бэлла / что с Кристиной — я расскажу про бывших и кринж\n"
@@ -2020,19 +2023,17 @@ def heat_phrase(heat: int) -> str:
         return "Меня уже несет: я ору, вру, потею и топлю себя как профессиональный долбоеб."
     if heat >= 6:
         return "Пошла грязная перепалка, я уже сам не вывожу, но продолжаю, потому что еблан не умеет вовремя заткнуться."
-    if heat >= 3:
-        return "Я начинаю дерзить, потому что фактов против меня слишком дохуя, а мозгов их пережить маловато."
-    return "Я пока разминаюсь, но уже готов обосраться уверенно."
+    return ""
 
 
 def profile_phrase(profile: sqlite3.Row | None) -> str:
     if not profile:
         return ""
-    bits = [f"Я тебя уже запомнил, {profile['nickname']}, не делай вид, что мы первый раз сремся."]
+    bits = []
     if profile["debt_questions"] >= 2:
-        bits.append(f"Про деньги ты уже доебывался {profile['debt_questions']} раз, у меня аж отмазки начали потеть.")
-    if profile["conflict_level"] >= 5:
-        bits.append("Мы с тобой уже сцеплялись, так что я заранее обижен и сейчас опять начну нести хуйню.")
+        bits.append(f"Про деньги ты уже спрашивал {profile['debt_questions']} раз, и я все равно сейчас начну вилять жопой.")
+    if profile["conflict_level"] >= 8:
+        bits.append("Мы уже разогнались в срач, так что я сейчас опять сам себе яму выкопаю.")
     return " ".join(bits)
 
 
@@ -2353,7 +2354,7 @@ def natural_command(text: str) -> tuple[str | None, str | None]:
             "как оно",
         )
     ):
-        return "story", None
+        return "seriy", None
     if any(
         word in normalized
         for word in (
@@ -2987,8 +2988,8 @@ async def startup_broadcast(bot: Bot) -> None:
     text = (
         "Я перезапустился и опять пришел нести хуйню от первого лица.\n\n"
         + WELCOME_TEXT
-        + "\n\nНовая фишка: напиши 'Серега как дела' или 'Серега расскажи историю' — "
-        "и я выдам очередной разъебный отчет из своей тупой биографии."
+        + "\n\nНовая фишка: напиши 'Серега как дела' — я коротко огрызнусь, "
+        "а 'Серега расскажи историю' — выдам очередной разъебный отчет из своей тупой биографии."
     )
     for row in rows:
         try:
