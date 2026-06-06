@@ -825,6 +825,36 @@ FIRST_PERSON_STORIES = [
         "честно, я охраняю не Веронику, а остатки своей самооценки: боюсь, что пока я сижу с пивом и строю из себя мужа, "
         "кто-нибудь просто посмотрит на весь этот мой пиздец и станет убедительнее меня за три секунды."
     ),
+    (
+        "История про мой великий план 'Камри, бухло и ноль мозгов'.\n\n"
+        "Я однажды сидел и рассказывал, что сейчас бы собрать пацанов, прыгнуть в Камри и погнать по ночному городу как "
+        "короли района. Звучал я, конечно, уверенно, будто у меня не пустая башка, а лицензия на легенду. Но даже мой "
+        "пьяный внутренний диспетчер понял: бухим за руль нельзя, это не романтика, а дорога в пиздец. Поэтому весь "
+        "заезд остался у меня во рту: я орал, как всех прокачу, Камри стояла и молилась, чтобы ключи от меня спрятали, "
+        "а барная стойка смотрела с уважением к машине и презрением ко мне.\n\n"
+        "Финал был классический: я никуда не поехал, но успел всем рассказать, что почти гонщик, почти мужик и почти "
+        "в контроле. Три раза 'почти' — это когда жизнь уже смеется, а я еще прошу занять на пиво."
+    ),
+    (
+        "История про бар, Веронику и мой охранный синдром.\n\n"
+        "Сидел я в баре, где Вероника работает, пил пиво и называл это семейной охраной. По факту я просто ревновал ее "
+        "к каждому, кто смог нормально заказать напиток и не выглядеть как кредитная ошибка. Я смотрел на мужиков в баре "
+        "так, будто они пришли украсть не Веронику, а последнюю иллюзию, что я кому-то нужен. Вероника работала, люди "
+        "отдыхали, а я сидел рядом как пивной талисман тревоги: громкий, липкий, с легендой 'я все контролирую'.\n\n"
+        "Потом я начал рассказывать, что если кто-то к ней полезет, я устрою разбор. На деле мой разбор обычно такой: "
+        "занять денег, обидеться, соврать, вспомнить Камри и уйти в туалет пересобирать лицо. Бар видел все, и, кажется, "
+        "даже стулья поняли, что главный риск вечера — это не конкуренты, а я сам."
+    ),
+    (
+        "История про бывшую, ее парня на работе и мой гениальный план обосраться.\n\n"
+        "Я как-то фантазировал: вот сейчас поеду к бывшей, пока ее парень на работе, зайду такой весь опасный, скажу "
+        "'я просто поговорить', и она сразу вспомнит, какой я роковой мужик. Но реальность у меня всегда приходит с "
+        "монтажными ножницами и скринами. Потому что роковой мужик не занимает на дорогу, не путает бывших, не удаляет "
+        "переписку кусками и не пахнет пивом так, будто его воспитывала барная стойка.\n\n"
+        "В моей голове это была пошлая авантюра, а на практике вышел бы очередной сериал: бывшая скринит, парень узнает, "
+        "Вероника ревнует, Бэлла вспоминает Камри, Кристина спрашивает про деньги, а я стою посередине и делаю единственное, "
+        "что умею: вру, потею и называю это сложной личной жизнью."
+    ),
 ]
 
 FIRST_PERSON_STUPIDITY = [
@@ -884,6 +914,29 @@ FIRST_PERSON_STUPIDITY = [
         "Короче, я профессионал слова 'почти'. Реально пока получилось только сидеть в баре, пить пиво и охранять Веронику "
         "от воображаемых конкурентов."
     ),
+    (
+        "Час опасного пиздежа.\n\n"
+        "Я опять орал, что сейчас бы на Камри всех прокатить, но бухим за руль нельзя, даже если ты Серый и у тебя в голове "
+        "одна пена. Поэтому я просто стоял рядом, изображал гонщика и выглядел как человек, которого Камри сама бы не пустила "
+        "в салон без справки от психиатра."
+    ),
+    (
+        "Барная сводка.\n\n"
+        "Я сижу у Вероники на смене, пью пиво и называю это охраной. На самом деле я охраняю свой страх, что кто-нибудь "
+        "окажется нормальнее меня, богаче меня и без долгов. То есть почти любой, сука."
+    ),
+    (
+        "Пошлая минутка моего позора.\n\n"
+        "Я хотел поехать к бывшей 'просто поговорить', пока ее парень на работе. В моей голове я был опасный любовник, "
+        "а в реальности был бы барный должник с запахом пива, скринами в спину и лицом человека, который опять перепутал "
+        "романтику с уголовной тупостью."
+    ),
+    (
+        "Сводка по Камри.\n\n"
+        "Камри в моих рассказах гоняет, блестит и всех впечатляет. В реальности она стояла бы с включенной аварийкой и "
+        "молилась, чтобы я не сел за руль бухой, потому что даже железо понимает: Серый за рулем после пива — это не сюжет, "
+        "а заявление в отделение."
+    ),
 ]
 
 SERG_CHATTER = [
@@ -926,6 +979,9 @@ DIRECT_SERG_REPLIES = [
     "Блять, кто меня вызвал? Я только устроился удобно охранять Веронику от барной мебели.",
     "Говори, но аккуратно: у меня сегодня характер как просроченный долг — воняет и не закрывается.",
     "Я слушаю, но предупреждаю: отвечать буду грубо, тупо и как человек, которого жизнь уже отымела за долги.",
+    "Че звал? Поехали лучше в бар к Веронике: я попью пива, поревную ко всем подряд и снова докажу, что охраняю не ее, а свой ебаный страх.",
+    "Я бы сейчас сказал 'погнали на Камри', но бухим за руль нельзя, так что просто буду сидеть и пиздеть, будто я король ночного района.",
+    "Че надо? Если хочешь историю про бывшую, ее парня на работе и мой пошлый план обосраться — садись, я сейчас сам себя закопаю красиво.",
 ]
 
 SERG_CONFLICT_REPLIES = [
@@ -1197,6 +1253,11 @@ STORY_CAMRY_BITS = [
     "я говорил 'машину переоформим', но переоформил только вину на обстоятельства",
     "Камри была последней вещью, которая еще могла выглядеть нормально рядом со мной",
     "я продал Камри так, будто продавал не машину, а алиби",
+    "я грозился погнать на Камри как король, но ключи от бухого меня надо прятать даже от самой Камри",
+    "Камри слышала мой пьяный план и, кажется, сама включила бы аварийку от стыда",
+    "я рассказывал про ночной заезд так уверенно, будто дорога обязана терпеть мой алкогольный долбоебизм",
+    "Камри в моих фантазиях летела по району, а в реальности стояла и ждала, когда меня оттащат от руля нахуй",
+    "я делал вид, что Камри это свобода, хотя для меня свобода обычно заканчивается пивом, долгом и чужими скринами",
 ]
 
 STORY_BAR_BITS = [
@@ -1215,6 +1276,11 @@ STORY_BAR_BITS = [
     "Вероника работала, а я рядом охранял ее так, будто сам себя боялся потерять",
     "я пытался выглядеть мужем, но получался охранник собственной неуверенности",
     "барная стойка молчала, но, кажется, тоже знала, что я опять кому-то должен",
+    "я предлагал посидеть пивка попить, пока Вероника работает, а сам уже ревновал ее к меню и барному коврику",
+    "я сидел у Вероники на смене и был похож не на мужа, а на приложение к пиву с функцией 'обидеться'",
+    "каждый мужик в баре казался мне угрозой, потому что у каждого был шанс оказаться менее ебанутым, чем я",
+    "я охранял Веронику так, будто она касса, а я последний рубль, который еще не занял",
+    "барная смена шла нормально, пока я не начал строить из себя альфа-самца с кредитной историей помойки",
 ]
 
 STORY_DIRTY_ENDINGS = [
@@ -1250,6 +1316,9 @@ STORY_FIXED_LORE_EVENTS = [
     "Айфон Веронике и айфон ее дочке я объяснял как семейный жест, хотя долги смотрели на это и тихо охуевали в углу.",
     "Наринэ, Амурсталь, Камри, Бэлла и Кристина в моем лоре связаны одним: где появляюсь я, там деньги начинают искать выход.",
     "Пока бывшие сверяли скрины и голосовые, я пытался выглядеть честным, но честность у меня держалась хуже, чем зарядка на старом айфоне.",
+    "Я фантазировал поехать к бывшей, пока ее парень на работе, но в моей версии даже измена заканчивается не страстью, а скринами, долгом и криком 'Серый, ты опять охуел'.",
+    "Я звал посидеть у Вероники в баре, а сам сидел как барный цербер на минималках: пиво пью, всех ревную, деньги не возвращаю.",
+    "Я орал про Камри и ночной заезд, но бухим за руль нельзя, поэтому весь мой драйв остался в пиздеже, а машина выжила только благодаря здравому смыслу окружающих.",
 ]
 
 STORY_CROSSOVERS = [
@@ -1261,6 +1330,9 @@ STORY_CROSSOVERS = [
     "Вероника видела меня в баре, Бэлла видела скрины, Кристина видела долги, а я видел только путь к очередной отмазке.",
     "Амурсталь дала лору промышленный масштаб, Наринэ дало пиво, Камри дала сюжет, а я дал всем повод больше не верить словам 'завтра отдам'.",
     "Каждая бывшая думала, что у нее отдельная история со мной, пока не выяснилось, что я просто сериал с плохим сценарием и платной подпиской на стыд.",
+    "Я хотел сделать вечер 'Камри, бар, бывшая', но получилось 'не садись бухим, не лезь к бывшим, не ври Веронике', то есть три правила, которые мой мозг читает как рекламу.",
+    "Бывшая ждала тайной встречи, Вероника ждала конца смены, бар ждал оплаты, Камри ждала трезвого водителя, а я опять пришел только с пиздежом.",
+    "Я думал, что пошлость сделает меня опасным, но опасным оказался только мой уровень тупости: он портит отношения, деньги и любую машину рядом.",
 ]
 
 
@@ -1329,14 +1401,14 @@ def serg_contextual_reply(
     topic: str,
     state: sqlite3.Row,
     memory: list[sqlite3.Row],
-    addressed_name: str = "",
+    addressed_username: str | None = None,
     profile: sqlite3.Row | None = None,
     thread: sqlite3.Row | None = None,
     previous_promise: str | None = None,
     current_promise: str | None = None,
 ) -> str:
     mood, scene = state_text(state)
-    name_part = f"{serg_address(capitalize=True)}, " if addressed_name else ""
+    name_part = f"{serg_address(addressed_username, capitalize=True)}, " if addressed_username is not None else ""
     snippet = context_snippet(memory, topic)
     if topic == "debt":
         body = debt_lie_text(current_promise or random.choice(PROMISE_STEPS), previous_promise)
@@ -1354,7 +1426,7 @@ def serg_contextual_reply(
     elif topic == "hello":
         body = random.choice(DIRECT_SERG_REPLIES + [serg_generated_reply()])
     else:
-        body = random.choice(SERG_CHATTER + [serg_generated_reply(), generated_serg_story()])
+        body = random.choice(SERG_CHATTER + [serg_generated_reply(), generated_serg_story(), generated_bad_invite()])
     extra = []
     if profile:
         extra.append(profile_phrase(profile))
@@ -1802,8 +1874,14 @@ PROFILE_NICKNAMES = [
 ]
 
 SERG_ADDRESS_NAMES = [
+    "брат",
     "братишка",
     "братский",
+    "братулька",
+    "братуля",
+    "братиш",
+    "брателло",
+    "братюнь",
     "бро",
     "родненький",
     "родной",
@@ -1819,10 +1897,47 @@ SERG_ADDRESS_NAMES = [
     "брат по несчастью",
 ]
 
+SERG_PERSONAL_ADDRESS_NAMES = {
+    "homster1707": ["Илюша", "Илюха", "Хомяк"],
+    "alexdck": ["Сань", "Саня", "Сашка", "БПэшка", "неделька"],
+    "viktor_belyaev27": ["Витяня", "Витян Полярный"],
+}
 
-def serg_address(capitalize: bool = False) -> str:
-    value = random.choice(SERG_ADDRESS_NAMES)
+PERSONAL_ADDRESS_CHANCE = 0.3
+
+
+def normalized_username(username: str | None) -> str:
+    return (username or "").strip().lstrip("@").lower()
+
+
+def serg_address(username: str | None = None, capitalize: bool = False) -> str:
+    personal_names = SERG_PERSONAL_ADDRESS_NAMES.get(normalized_username(username))
+    if personal_names and random.random() < PERSONAL_ADDRESS_CHANCE:
+        value = random.choice(personal_names)
+    else:
+        value = random.choice(SERG_ADDRESS_NAMES)
     return value[:1].upper() + value[1:] if capitalize else value
+
+
+def serg_address_for_user(user, capitalize: bool = False) -> str:
+    return serg_address(getattr(user, "username", None), capitalize=capitalize)
+
+
+def serg_address_for_message(message: Message, capitalize: bool = False) -> str:
+    return serg_address_for_user(message.from_user, capitalize=capitalize)
+
+
+def serg_address_for_row(row: sqlite3.Row | None, capitalize: bool = False) -> str:
+    username = None
+    if row is not None and "username" in row.keys():
+        username = row["username"]
+    return serg_address(username, capitalize=capitalize)
+
+
+def message_username(message: Message) -> str:
+    if not message.from_user:
+        return ""
+    return message.from_user.username or ""
 
 
 def get_or_create_profile(conn: sqlite3.Connection, message: Message, topic: str) -> sqlite3.Row | None:
@@ -2103,6 +2218,60 @@ def event_text(row: sqlite3.Row) -> str:
             "У меня все хорошо, я почти богат, Веронике айфон, дочке айфон, всем айфоны, "
             "а долг я не отдаю не потому что бедный, а потому что вы не поняли мою финансовую философию."
         )
+    return random.choice(IDLE_ROASTS)
+
+
+def generated_bad_invite() -> str:
+    address = serg_address(capitalize=True)
+    return random.choice(
+        [
+            (
+                f"{address}, поехали посидим в баре, где Вероника работает. Я буду пить пиво, делать вид, что я охрана, "
+                "и ревновать ее к каждому мужику, у которого лицо не похоже на просроченный долг. Вечер будет мерзкий, "
+                "громкий и очень по-серому: я опять сам себя выставлю ебланом."
+            ),
+            (
+                f"{address}, я тут почти придумал план: Камри, ночной город и я с видом короля района. Но бухими за руль "
+                "нельзя, даже мой пустой череп это понимает. Поэтому останемся в режиме фантазии: я буду орать, что "
+                "сейчас всех прокачу, а Камри в этот момент мысленно вызовет эвакуатор и психолога."
+            ),
+            (
+                f"{address}, давай я сейчас сделаю вид, что зову тебя к бывшей, пока ее парень на работе. Типа я весь "
+                "такой опасный любовный рейдер. На деле я просто потный должник с барной ревностью, который даже "
+                "из измены делает бухгалтерию стыда и потом сам же палится на переписке."
+            ),
+            (
+                f"{address}, есть схема: бар, пиво, Вероника на смене, я рядом с лицом охранника семейного позора. "
+                "Если кто-то на нее посмотрит, я начну ревновать, потом займу денег, потом скажу, что это был "
+                "социальный эксперимент, сука."
+            ),
+            (
+                f"{address}, я бы сейчас позвал гонять на Камри, как последний долбоеб, но бухим рулить нельзя. "
+                "Так что просто посидим, я расскажу, как почти был стритрейсером, почти мужиком и почти не должником. "
+                "Три 'почти' — это уже мой официальный паспорт."
+            ),
+            (
+                f"{address}, погнали в бар наблюдать, как Вероника работает, а я изображаю мужа. Я буду пить пиво, "
+                "шептать 'я все контролирую' и выглядеть так, будто меня контролирует только пена, долги и страх, "
+                "что бывшие опять синхронизируют скрины."
+            ),
+            (
+                f"{address}, я придумал грязный квест: бывшая, ее парень на работе, я с легендой 'я просто поговорить'. "
+                "Звучит как начало тупой пошлой катастрофы, потому что в моем исполнении любая романтика превращается "
+                "в срач, скрины и фразу 'брат, я не так понял'."
+            ),
+            (
+                f"{address}, я опять хочу собрать Камри, бар и бывшую в один вечер. Камри пусть стоит, потому что бухим "
+                "за руль нельзя, бар пусть наливает, Вероника пусть делает вид, что не видит мой позор, а бывшая пусть "
+                "сразу готовит скрины, чтобы потом не искать доказательства моего долбоебизма."
+            ),
+        ]
+    )
+
+
+def idle_roast_text() -> str:
+    if random.random() < 0.28:
+        return generated_bad_invite()
     return random.choice(IDLE_ROASTS)
 
 
@@ -2850,7 +3019,7 @@ async def answer_rank(message: Message) -> None:
         return
     await answer_alive(
         message,
-        f"{serg_address(capitalize=True)}\n"
+        f"{serg_address_for_message(message, capitalize=True)}\n"
         f"Архивный счетчик старой игры: {row['points']}\n"
         f"Сколько раз писал в чат при мне: {row['messages']}\n"
         "Сейчас главный режим другой: зовите меня, и я буду лезть со своими тупыми историями."
@@ -2865,7 +3034,7 @@ async def answer_top(message: Message) -> None:
         return
     lines = ["Архивный топ старой игры:"]
     for index, row in enumerate(rows, start=1):
-        lines.append(f"{index}. {serg_address(capitalize=True)} - {row['points']} очк., {rank_for(row['points'])}")
+        lines.append(f"{index}. {serg_address_for_row(row, capitalize=True)} - {row['points']} очк., {rank_for(row['points'])}")
     await answer_alive(message, "\n".join(lines))
 
 
@@ -2877,7 +3046,7 @@ async def answer_seriy_top(message: Message) -> None:
         return
     lines = ["Топ тех, кто лучше всех хуесосит меня:"]
     for index, row in enumerate(rows, start=1):
-        lines.append(f"{index}. {serg_address(capitalize=True)} — {row['seriy_hits']} попаданий по моей репутации")
+        lines.append(f"{index}. {serg_address_for_row(row, capitalize=True)} — {row['seriy_hits']} попаданий по моей репутации")
     await answer_alive(message, "\n".join(lines))
 
 
@@ -2912,7 +3081,7 @@ async def answer_buy(message: Message, code: str) -> None:
         )
         conn.commit()
 
-    await answer_alive(message, f"{serg_address(capitalize=True)} покупает: {item.title}\n\n{item.text}")
+    await answer_alive(message, f"{serg_address_for_message(message, capitalize=True)} покупает: {item.title}\n\n{item.text}")
 
 
 async def answer_exes(message: Message) -> None:
@@ -2926,7 +3095,7 @@ async def answer_exes(message: Message) -> None:
         await answer_alive(message, "У тебя пока нет моих бывших в коллекции. И это, возможно, лучшее, что случалось с твоей психикой.")
         return
 
-    lines = [f"Мои бывшие в коллекции у {serg_address()}:"]
+    lines = [f"Мои бывшие в коллекции у {serg_address_for_message(message)}:"]
     for reward in rewards:
         lines.append(f"{reward['ex_name']} — {reward['count']} раз")
     lines.append("")
@@ -2946,7 +3115,7 @@ async def answer_family(message: Message) -> None:
     status = "Жених хуевой телеги" if row["ex_events"] >= 3 else "Случайный гость кринжового ЗАГСа"
     await answer_alive(
         message,
-        f"Семейное дело, {serg_address()}:\n"
+        f"Семейное дело, {serg_address_for_message(message)}:\n"
         f"Статус: {status}\n"
         f"Бывшие-ивенты: {row['ex_events']}\n"
         f"Мемные дети: {row['meme_children']}\n"
@@ -2961,7 +3130,7 @@ async def answer_debt(message: Message) -> None:
     if summary and summary["loan_count"] > 0:
         await answer_alive(
             message,
-            f"{serg_address(capitalize=True)}, не начинай, я все помню.\n\n"
+            f"{serg_address_for_message(message, capitalize=True)}, не начинай, я все помню.\n\n"
             f"По моим мутным записям ты уже занимал мне {summary['total_amount']} ₽ "
             f"({summary['loan_count']} раз).\n\n"
             f"{loan_generated_evasion()}\n\n{random.choice(LOAN_EVASIONS)}"
@@ -3114,7 +3283,7 @@ async def sergey_ping_command(message: Message, bot: Bot) -> None:
     if not await is_chat_admin(bot, message):
         await answer_alive(message, "Пинговать меня может только админ чата.")
         return
-    await answer_alive(message, random.choice(IDLE_ROASTS))
+    await answer_alive(message, idle_roast_text())
 
 
 @dp.message(Command("loan_ping"))
@@ -3156,7 +3325,7 @@ async def lend_callback(query: CallbackQuery) -> None:
     await send_alive(
         query.bot,
         query.message.chat.id,
-        f"{serg_address(capitalize=True)} занял мне {loan['amount']} ₽.\n"
+        f"{serg_address_for_user(query.from_user, capitalize=True)} занял мне {loan['amount']} ₽.\n"
         "Я сказал: 'брат, завтра железно', и это уже звучит как уголовная сказка."
     )
 
@@ -3297,7 +3466,7 @@ async def score_message(message: Message, bot: Bot) -> None:
                 topic,
                 state,
                 memory,
-                display_name(message),
+                message_username(message),
                 profile,
                 thread,
                 previous_promise_text,
@@ -3312,7 +3481,7 @@ async def score_message(message: Message, bot: Bot) -> None:
             profile = get_or_create_profile(conn, message, "hello")
         await reply_unique(
             message,
-            lambda: serg_contextual_reply("hello", state, memory, display_name(message), profile, thread),
+            lambda: serg_contextual_reply("hello", state, memory, message_username(message), profile, thread),
         )
         return
 
@@ -3330,7 +3499,7 @@ async def score_message(message: Message, bot: Bot) -> None:
                 topic,
                 state,
                 memory,
-                display_name(message),
+                message_username(message),
                 profile,
                 thread,
                 previous_promise_text,
@@ -3349,7 +3518,7 @@ async def score_message(message: Message, bot: Bot) -> None:
                 topic,
                 state,
                 memory,
-                display_name(message),
+                message_username(message),
                 profile,
                 thread,
                 previous_promise_text,
@@ -3374,7 +3543,7 @@ async def idle_roast_loop(bot: Bot) -> None:
             now = int(time.time())
         for row in rows:
             try:
-                await send_alive(bot, row["chat_id"], random.choice(IDLE_ROASTS))
+                await send_alive(bot, row["chat_id"], idle_roast_text())
                 next_roast_at = now + random_roast_delay()
                 with connect() as conn:
                     conn.execute(
