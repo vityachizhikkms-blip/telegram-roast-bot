@@ -35,6 +35,7 @@ AUTO_ROAST_MIN_HOURS = int(os.getenv("AUTO_ROAST_MIN_HOURS", "3"))
 AUTO_ROAST_MAX_HOURS = int(os.getenv("AUTO_ROAST_MAX_HOURS", "5"))
 LOAN_MIN_HOURS = int(os.getenv("LOAN_MIN_HOURS", "6"))
 LOAN_MAX_HOURS = int(os.getenv("LOAN_MAX_HOURS", "12"))
+SERIY_STUPIDITY_MINUTES = int(os.getenv("SERIY_STUPIDITY_MINUTES", "60"))
 
 if not BOT_TOKEN:
     raise RuntimeError("BOT_TOKEN is empty. Put your BotFather token into .env")
@@ -304,6 +305,58 @@ LOAN_BRAGS = [
     ),
 ]
 
+SERIY_STUPIDITY = [
+    (
+        "Час тупости Серого.\n\n"
+        "Братишка Серый бухнул 'чуть-чуть', изменил бывшей с другой бывшей, потом зачем-то катал обеих на Камри, "
+        "а утром продал Камри 'чтобы закрыть вопрос'. Вопрос, конечно, остался, Камри ушла, Серый опять должен."
+    ),
+    (
+        "Серый выдал новый бизнес-план.\n\n"
+        "Сначала занять на пиво, потом сказать бывшей, что он 'на делах', потом прокатиться на Камри, "
+        "потом продать Камри дешевле рынка и объяснить: 'я просто не хотел привязываться к железу'."
+    ),
+    (
+        "Лор Серого обновлен.\n\n"
+        "Он изменял бывшей с бывшей, пока третья бывшая ждала деньги за такси. "
+        "Серый сказал, что это не измена, а 'сложная логистика чувств'. Камри в этот момент уже стояла на продаже."
+    ),
+    (
+        "Братишка Серый опять победил здравый смысл.\n\n"
+        "Напился, пообещал Кристине айфон, Бэлле поездку, даме из Наринэ возврат долга, "
+        "а сам продал Камри и купил пиво. Финансовый гений, ебать."
+    ),
+    (
+        "Серый объясняет измену:\n\n"
+        "'Я никому не изменял, я просто был эмоционально в нескольких местах'. "
+        "После этой фразы Камри сама захотела сняться с учета и уехать от него нахуй."
+    ),
+    (
+        "Алко-сводка Серого.\n\n"
+        "Вчера он пил с бывшей, сегодня с бывшей бывшей, завтра обещает быть нормальным. "
+        "Камри продана, деньги пропиты, долг записан как 'непонятная жизненная ситуация'."
+    ),
+    (
+        "Серый кинул бывшую так тупо, что даже его отмазка подала на увольнение.\n\n"
+        "Сказал: 'я ща за пивом и обратно', вернулся без Камри, без денег, но с уверенностью, что он красавчик."
+    ),
+    (
+        "Братишка Серый открыл школу отношений.\n\n"
+        "Первый урок: как изменить бывшей с бывшей, занять у третьей, продать Камри и все равно сказать: "
+        "'да вы просто не поняли мой уровень'."
+    ),
+    (
+        "Серый снова на стиле.\n\n"
+        "Бухой, в долгах, бывшие в ахуе, Камри в объявлении, а он говорит: 'я просто оптимизирую активы'. "
+        "Активы оптимизировались в пиво."
+    ),
+    (
+        "Минутка Серегиной экономики.\n\n"
+        "Камри была, денег нет. Бывшая была, доверия нет. Пиво было, памяти нет. "
+        "Зато Серый уверен, что все идет по плану."
+    ),
+]
+
 WELCOME_TEXT = (
     "Ну че, дебилы, бот зашел в чат.\n\n"
     "Я считаю мат, выдаю очки, ранги и кринж-награды из жизни Братишки Серого.\n"
@@ -325,7 +378,8 @@ WELCOME_TEXT = (
     "/sergey_on — включить автоподъебы\n"
     "/sergey_off — выключить\n"
     "/sergey_ping — пнуть чат сразу\n"
-    "/loan_ping — запустить займ Серого с кнопками"
+    "/loan_ping — запустить займ Серого с кнопками\n"
+    "/stupid_ping — выдать тупость Серого сразу"
 )
 
 
@@ -374,11 +428,12 @@ def connect() -> sqlite3.Connection:
             last_seen_at INTEGER NOT NULL DEFAULT 0,
             last_roast_at INTEGER NOT NULL DEFAULT 0,
             next_roast_at INTEGER NOT NULL DEFAULT 0,
-            next_loan_at INTEGER NOT NULL DEFAULT 0
+            next_loan_at INTEGER NOT NULL DEFAULT 0,
+            next_stupidity_at INTEGER NOT NULL DEFAULT 0
         )
         """
     )
-    for column in ("next_roast_at", "next_loan_at"):
+    for column in ("next_roast_at", "next_loan_at", "next_stupidity_at"):
         try:
             conn.execute(f"ALTER TABLE chat_settings ADD COLUMN {column} INTEGER NOT NULL DEFAULT 0")
         except sqlite3.OperationalError:
@@ -591,13 +646,14 @@ def set_idle_roast(conn: sqlite3.Connection, message: Message, enabled: bool) ->
     now = int(time.time())
     next_roast_at = now + random_roast_delay() if enabled else 0
     next_loan_at = now + random_loan_delay() if enabled else 0
+    next_stupidity_at = now + SERIY_STUPIDITY_MINUTES * 60 if enabled else 0
     conn.execute(
         """
         UPDATE chat_settings
-        SET idle_roast_enabled = ?, next_roast_at = ?, next_loan_at = ?
+        SET idle_roast_enabled = ?, next_roast_at = ?, next_loan_at = ?, next_stupidity_at = ?
         WHERE chat_id = ?
         """,
-        (1 if enabled else 0, next_roast_at, next_loan_at, message.chat.id),
+        (1 if enabled else 0, next_roast_at, next_loan_at, next_stupidity_at, message.chat.id),
     )
     conn.commit()
 
@@ -627,6 +683,21 @@ def loan_chats(conn: sqlite3.Connection) -> list[sqlite3.Row]:
         WHERE idle_roast_enabled = 1
           AND next_loan_at > 0
           AND next_loan_at <= ?
+        """,
+        (now,),
+    ).fetchall()
+
+
+def stupidity_chats(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    now = int(time.time())
+    if not now_in_day_window():
+        return []
+    return conn.execute(
+        """
+        SELECT * FROM chat_settings
+        WHERE idle_roast_enabled = 1
+          AND next_stupidity_at > 0
+          AND next_stupidity_at <= ?
         """,
         (now,),
     ).fetchall()
@@ -1038,7 +1109,7 @@ async def sergey_on_command(message: Message, bot: Bot) -> None:
         set_idle_roast(conn, message, True)
     await message.answer(
         f"Автоподъебы включены. Днем я буду вкидывать раз в {AUTO_ROAST_MIN_HOURS}-{AUTO_ROAST_MAX_HOURS} часов. "
-        "Братишка Серый получит очередной словесный подзатыльник."
+        f"Плюс раз в {SERIY_STUPIDITY_MINUTES} минут Серый будет выдавать тупость про бухло, бывших и Камри."
     )
 
 
@@ -1068,6 +1139,14 @@ async def loan_ping_command(message: Message, bot: Bot) -> None:
     with connect() as conn:
         touch_chat(conn, message)
     await send_loan_request(bot, message.chat.id)
+
+
+@dp.message(Command("stupid_ping"))
+async def stupid_ping_command(message: Message, bot: Bot) -> None:
+    if not await is_chat_admin(bot, message):
+        await message.answer("Доставать Серегину тупость из архива может только админ чата.")
+        return
+    await message.answer(random.choice(SERIY_STUPIDITY))
 
 
 @dp.callback_query(F.data.startswith("lend:"))
@@ -1171,6 +1250,7 @@ async def idle_roast_loop(bot: Bot) -> None:
         with connect() as conn:
             rows = idle_roast_chats(conn)
             loan_rows = loan_chats(conn)
+            stupidity_rows = stupidity_chats(conn)
             due_loan_rows = due_loans(conn)
             now = int(time.time())
         for row in rows:
@@ -1192,6 +1272,22 @@ async def idle_roast_loop(bot: Bot) -> None:
         for row in loan_rows:
             try:
                 await send_loan_request(bot, row["chat_id"])
+            except Exception:
+                pass
+        for row in stupidity_rows:
+            try:
+                await bot.send_message(row["chat_id"], random.choice(SERIY_STUPIDITY))
+                next_stupidity_at = now + SERIY_STUPIDITY_MINUTES * 60
+                with connect() as conn:
+                    conn.execute(
+                        """
+                        UPDATE chat_settings
+                        SET next_stupidity_at = ?
+                        WHERE chat_id = ?
+                        """,
+                        (next_stupidity_at, row["chat_id"]),
+                    )
+                    conn.commit()
             except Exception:
                 pass
         for loan in due_loan_rows:

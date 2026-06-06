@@ -50,6 +50,7 @@ python bot.py
 - `/excuse` - тупая отмазка Серого
 - `/lore` - случайный факт из жизни Серого
 - `/loan_ping` - вручную запустить займ Серого с кнопками
+- `/stupid_ping` - вручную выдать тупость Серого про бухло, бывших и Камри
 - `/sergey_on` - включить автоподъебы, когда чат затих
 - `/sergey_off` - выключить автоподъебы
 - `/sergey_ping` - проверить автоподъеб сразу
@@ -76,6 +77,7 @@ AUTO_ROAST_MIN_HOURS=3
 AUTO_ROAST_MAX_HOURS=5
 LOAN_MIN_HOURS=6
 LOAN_MAX_HOURS=12
+SERIY_STUPIDITY_MINUTES=60
 ```
 
 На Render `WEBHOOK_URL` можно не указывать: бот сам возьмет адрес из `RENDER_EXTERNAL_URL`.
