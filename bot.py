@@ -1295,7 +1295,7 @@ def state_text(state: sqlite3.Row) -> tuple[str, str]:
 def context_snippet(memory: list[sqlite3.Row], topic: str) -> str:
     for row in memory:
         if row["topic"] == topic and row["topic"] != "general":
-            return f"Я видел, {row['full_name']} только что вкидывал про это, так что не делайте вид, что тема сама родилась."
+            return f"Я видел, {serg_address()} только что вкидывал про это, так что не делайте вид, что тема сама родилась."
     if memory:
         row = memory[0]
         return f"Вы тут только что писали '{row['text'][:80]}', и мой мозг, к сожалению, решил в это влезть."
@@ -1336,7 +1336,7 @@ def serg_contextual_reply(
     current_promise: str | None = None,
 ) -> str:
     mood, scene = state_text(state)
-    name_part = f"{addressed_name}, " if addressed_name else ""
+    name_part = f"{serg_address(capitalize=True)}, " if addressed_name else ""
     snippet = context_snippet(memory, topic)
     if topic == "debt":
         body = debt_lie_text(current_promise or random.choice(PROMISE_STEPS), previous_promise)
@@ -1801,6 +1801,29 @@ PROFILE_NICKNAMES = [
     "проверяющий моей совести",
 ]
 
+SERG_ADDRESS_NAMES = [
+    "братишка",
+    "братский",
+    "бро",
+    "родненький",
+    "родной",
+    "братан",
+    "дружище",
+    "командир",
+    "красавчик",
+    "шеф",
+    "мой тревожный кредитор",
+    "спонсор моей деградации",
+    "уважаемый пострадавший",
+    "финансовый ангел ада",
+    "брат по несчастью",
+]
+
+
+def serg_address(capitalize: bool = False) -> str:
+    value = random.choice(SERG_ADDRESS_NAMES)
+    return value[:1].upper() + value[1:] if capitalize else value
+
 
 def get_or_create_profile(conn: sqlite3.Connection, message: Message, topic: str) -> sqlite3.Row | None:
     if not message.from_user:
@@ -1890,11 +1913,11 @@ def heat_phrase(heat: int) -> str:
 def profile_phrase(profile: sqlite3.Row | None) -> str:
     if not profile:
         return ""
-    bits = [f"Для меня ты теперь: {profile['nickname']}."]
+    bits = [f"Я тебя уже запомнил, {profile['nickname']}, не делай вид, что мы первый раз сремся."]
     if profile["debt_questions"] >= 2:
-        bits.append(f"Про деньги ты уже доебывался {profile['debt_questions']} раз, я веду мутный учет.")
+        bits.append(f"Про деньги ты уже доебывался {profile['debt_questions']} раз, у меня аж отмазки начали потеть.")
     if profile["conflict_level"] >= 5:
-        bits.append("Мы с тобой уже сцеплялись, так что я заранее обижен и готов нести хуйню.")
+        bits.append("Мы с тобой уже сцеплялись, так что я заранее обижен и сейчас опять начну нести хуйню.")
     return " ".join(bits)
 
 
@@ -2066,7 +2089,7 @@ def event_text(row: sqlite3.Row) -> str:
         payload = json.loads(row["payload"] or "{}")
     except json.JSONDecodeError:
         payload = {}
-    target = payload.get("target_name") or "чат"
+    target = payload.get("target_alias") or serg_address()
     amount = payload.get("amount") or random.randrange(100, 5001, 100)
     if row["event_type"] == "loan_excuse":
         return (
@@ -2670,7 +2693,7 @@ def loan_keyboard(loan_id: int) -> InlineKeyboardMarkup:
 
 
 def loan_request_text(loan: sqlite3.Row) -> str:
-    target = f"{loan['target_name']}, " if loan["target_name"] else "Кто-нибудь, "
+    target = f"{serg_address(capitalize=True)}, "
     openings = [
         "выручай, у меня тут срочно горит жопа и финансовая схема на честном слове.",
         "займи по-братски, я сейчас вообще почти солидный, просто деньги временно в тумане.",
@@ -2759,6 +2782,7 @@ async def send_loan_request(bot: Bot, chat_id: int) -> None:
         payload = {
             "amount": loan["amount"],
             "target_name": loan["target_name"],
+            "target_alias": serg_address(),
             "reason": loan["reason"],
         }
         schedule_event(conn, chat_id, "loan_excuse", payload, random.randint(18 * 60, 35 * 60))
@@ -2772,10 +2796,10 @@ async def send_loan_final(bot: Bot, loan: sqlite3.Row) -> None:
         close_loan(conn, loan["id"])
 
     if lenders:
-        names = ", ".join(row["full_name"] for row in lenders)
+        lender_count = len(lenders)
         prefix = (
             f"Финал моего займа на {loan['amount']} ₽.\n"
-            f"Деньги заняли: {names}.\n\n"
+            f"Деньги заняли {lender_count} доверчивых братских.\n\n"
         )
     else:
         prefix = (
@@ -2826,7 +2850,7 @@ async def answer_rank(message: Message) -> None:
         return
     await answer_alive(
         message,
-        f"{row['full_name']}\n"
+        f"{serg_address(capitalize=True)}\n"
         f"Архивный счетчик старой игры: {row['points']}\n"
         f"Сколько раз писал в чат при мне: {row['messages']}\n"
         "Сейчас главный режим другой: зовите меня, и я буду лезть со своими тупыми историями."
@@ -2841,7 +2865,7 @@ async def answer_top(message: Message) -> None:
         return
     lines = ["Архивный топ старой игры:"]
     for index, row in enumerate(rows, start=1):
-        lines.append(f"{index}. {row['full_name']} - {row['points']} очк., {rank_for(row['points'])}")
+        lines.append(f"{index}. {serg_address(capitalize=True)} - {row['points']} очк., {rank_for(row['points'])}")
     await answer_alive(message, "\n".join(lines))
 
 
@@ -2853,7 +2877,7 @@ async def answer_seriy_top(message: Message) -> None:
         return
     lines = ["Топ тех, кто лучше всех хуесосит меня:"]
     for index, row in enumerate(rows, start=1):
-        lines.append(f"{index}. {row['full_name']} — {row['seriy_hits']} попаданий по моей репутации")
+        lines.append(f"{index}. {serg_address(capitalize=True)} — {row['seriy_hits']} попаданий по моей репутации")
     await answer_alive(message, "\n".join(lines))
 
 
@@ -2888,7 +2912,7 @@ async def answer_buy(message: Message, code: str) -> None:
         )
         conn.commit()
 
-    await answer_alive(message, f"{display_name(message)} покупает: {item.title}\n\n{item.text}")
+    await answer_alive(message, f"{serg_address(capitalize=True)} покупает: {item.title}\n\n{item.text}")
 
 
 async def answer_exes(message: Message) -> None:
@@ -2902,7 +2926,7 @@ async def answer_exes(message: Message) -> None:
         await answer_alive(message, "У тебя пока нет моих бывших в коллекции. И это, возможно, лучшее, что случалось с твоей психикой.")
         return
 
-    lines = [f"Мои бывшие в коллекции у {row['full_name']}:"]
+    lines = [f"Мои бывшие в коллекции у {serg_address()}:"]
     for reward in rewards:
         lines.append(f"{reward['ex_name']} — {reward['count']} раз")
     lines.append("")
@@ -2922,7 +2946,7 @@ async def answer_family(message: Message) -> None:
     status = "Жених хуевой телеги" if row["ex_events"] >= 3 else "Случайный гость кринжового ЗАГСа"
     await answer_alive(
         message,
-        f"Семейное дело {row['full_name']}:\n"
+        f"Семейное дело, {serg_address()}:\n"
         f"Статус: {status}\n"
         f"Бывшие-ивенты: {row['ex_events']}\n"
         f"Мемные дети: {row['meme_children']}\n"
@@ -2937,7 +2961,7 @@ async def answer_debt(message: Message) -> None:
     if summary and summary["loan_count"] > 0:
         await answer_alive(
             message,
-            f"{display_name(message)}, не начинай, я все помню.\n\n"
+            f"{serg_address(capitalize=True)}, не начинай, я все помню.\n\n"
             f"По моим мутным записям ты уже занимал мне {summary['total_amount']} ₽ "
             f"({summary['loan_count']} раз).\n\n"
             f"{loan_generated_evasion()}\n\n{random.choice(LOAN_EVASIONS)}"
@@ -3132,7 +3156,7 @@ async def lend_callback(query: CallbackQuery) -> None:
     await send_alive(
         query.bot,
         query.message.chat.id,
-        f"{query.from_user.full_name} занял мне {loan['amount']} ₽.\n"
+        f"{serg_address(capitalize=True)} занял мне {loan['amount']} ₽.\n"
         "Я сказал: 'брат, завтра железно', и это уже звучит как уголовная сказка."
     )
 
@@ -3151,9 +3175,8 @@ async def ask_loan_callback(query: CallbackQuery) -> None:
 
     await query.answer("Я уже придумываю отмазку.", show_alert=False)
     if lenders:
-        names = ", ".join(row["full_name"] for row in lenders)
         text = (
-            f"По моему займу на {loan['amount']} ₽ уже попали: {names}.\n"
+            f"По моему займу на {loan['amount']} ₽ уже попали {len(lenders)} доверчивых братских.\n"
             f"Текущая отмазка: '{random.choice(EXCUSES)}'\n"
             "Спросить можно, вернуть почти нереально."
         )
@@ -3192,7 +3215,7 @@ async def trap_callback(query: CallbackQuery) -> None:
     text = f"{text}\n\n{random.choice(SELF_OWN_LINES)}"
     with connect() as conn:
         remember_response(conn, query.message.chat.id, text)
-    await send_alive(query.bot, query.message.chat.id, text, reply_markup=trap_keyboard())
+    await send_alive(query.bot, query.message.chat.id, text)
 
 
 @dp.message(F.text)
@@ -3280,7 +3303,6 @@ async def score_message(message: Message, bot: Bot) -> None:
                 previous_promise_text,
                 current_promise,
             ),
-            reply_markup=trap_keyboard(),
         )
         return
 
@@ -3291,7 +3313,6 @@ async def score_message(message: Message, bot: Bot) -> None:
         await reply_unique(
             message,
             lambda: serg_contextual_reply("hello", state, memory, display_name(message), profile, thread),
-            reply_markup=trap_keyboard(),
         )
         return
 
@@ -3315,7 +3336,6 @@ async def score_message(message: Message, bot: Bot) -> None:
                 previous_promise_text,
                 current_promise,
             ),
-            reply_markup=trap_keyboard(),
         )
         return
 
@@ -3335,7 +3355,6 @@ async def score_message(message: Message, bot: Bot) -> None:
                 previous_promise_text,
                 current_promise,
             ),
-            reply_markup=trap_keyboard(),
         )
         return
 
