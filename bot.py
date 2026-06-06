@@ -41,6 +41,7 @@ SERIY_STUPIDITY_MINUTES = int(os.getenv("SERIY_STUPIDITY_MINUTES", "45"))
 STARTUP_BROADCAST = os.getenv("STARTUP_BROADCAST", "true").lower() in {"1", "true", "yes", "on"}
 SERG_CHAT_REPLY_CHANCE = float(os.getenv("SERG_CHAT_REPLY_CHANCE", "0.35"))
 FAKE_VOICE_CHANCE = float(os.getenv("FAKE_VOICE_CHANCE", "0.12"))
+CONFLICT_TTL_SECONDS = int(os.getenv("CONFLICT_TTL_SECONDS", "900"))
 
 if not BOT_TOKEN:
     raise RuntimeError("BOT_TOKEN is empty. Put your BotFather token into .env")
@@ -1231,7 +1232,14 @@ def topic_fact(topic: str) -> str:
     return random.choice(facts) if facts else random.choice(FIRST_PERSON_LORE_FACTS)
 
 
-def serg_contextual_reply(topic: str, state: sqlite3.Row, memory: list[sqlite3.Row], addressed_name: str = "") -> str:
+def serg_contextual_reply(
+    topic: str,
+    state: sqlite3.Row,
+    memory: list[sqlite3.Row],
+    addressed_name: str = "",
+    profile: sqlite3.Row | None = None,
+    thread: sqlite3.Row | None = None,
+) -> str:
     mood, scene = state_text(state)
     name_part = f"{addressed_name}, " if addressed_name else ""
     snippet = context_snippet(memory, topic)
@@ -1251,11 +1259,18 @@ def serg_contextual_reply(topic: str, state: sqlite3.Row, memory: list[sqlite3.R
         body = random.choice(DIRECT_SERG_REPLIES + [serg_generated_reply()])
     else:
         body = random.choice(SERG_CHATTER + [serg_generated_reply(), generated_serg_story()])
+    extra = []
+    if profile:
+        extra.append(profile_phrase(profile))
+    if thread:
+        extra.append(heat_phrase(thread["heat"]))
+    extra_text = ("\n" + "\n".join(part for part in extra if part)) if extra else ""
     return (
         f"{name_part}{body}\n\n"
         f"{snippet}\n"
         f"Состояние дня: {mood}\n"
         f"Мини-сюжет: {scene}"
+        f"{extra_text}"
     )
 
 WELCOME_TEXT = (
@@ -1438,6 +1453,69 @@ def connect() -> sqlite3.Connection:
         )
         """
     )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS user_profiles (
+            chat_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            full_name TEXT NOT NULL,
+            nickname TEXT,
+            debt_questions INTEGER NOT NULL DEFAULT 0,
+            seriy_replies INTEGER NOT NULL DEFAULT 0,
+            conflict_level INTEGER NOT NULL DEFAULT 0,
+            last_topic TEXT,
+            last_seen_at INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (chat_id, user_id)
+        )
+        """
+    )
+    for column_def in (
+        "nickname TEXT",
+        "debt_questions INTEGER NOT NULL DEFAULT 0",
+        "seriy_replies INTEGER NOT NULL DEFAULT 0",
+        "conflict_level INTEGER NOT NULL DEFAULT 0",
+        "last_topic TEXT",
+        "last_seen_at INTEGER NOT NULL DEFAULT 0",
+    ):
+        column = column_def.split()[0]
+        try:
+            conn.execute(f"ALTER TABLE user_profiles ADD COLUMN {column_def}")
+        except sqlite3.OperationalError:
+            pass
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS seriy_threads (
+            chat_id INTEGER PRIMARY KEY,
+            user_id INTEGER,
+            full_name TEXT,
+            topic TEXT,
+            heat INTEGER NOT NULL DEFAULT 0,
+            last_message_at INTEGER NOT NULL DEFAULT 0
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS response_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            chat_id INTEGER NOT NULL,
+            text TEXT NOT NULL,
+            created_at INTEGER NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS seriy_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            chat_id INTEGER NOT NULL,
+            event_type TEXT NOT NULL,
+            payload TEXT,
+            due_at INTEGER NOT NULL,
+            done INTEGER NOT NULL DEFAULT 0
+        )
+        """
+    )
     conn.commit()
     return conn
 
@@ -1599,6 +1677,237 @@ def recent_context(conn: sqlite3.Connection, chat_id: int, limit: int = 6) -> li
         """,
         (chat_id, limit),
     ).fetchall()
+
+
+PROFILE_NICKNAMES = [
+    "кредитор с тревожными глазами",
+    "следователь по моим долгам",
+    "человек, который зря мне поверил",
+    "барный аудитор моего пиздеца",
+    "свидетель Камри-апокалипсиса",
+    "спонсор моей хуевой легенды",
+    "коллектор здравого смысла",
+    "жертва фразы 'завтра железно'",
+    "архивариус моих отмазок",
+    "проверяющий моей совести",
+]
+
+
+def get_or_create_profile(conn: sqlite3.Connection, message: Message, topic: str) -> sqlite3.Row | None:
+    if not message.from_user:
+        return None
+    now = int(time.time())
+    conn.execute(
+        """
+        INSERT INTO user_profiles(chat_id, user_id, full_name, nickname, last_topic, last_seen_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(chat_id, user_id) DO UPDATE SET
+            full_name = excluded.full_name,
+            last_topic = excluded.last_topic,
+            last_seen_at = excluded.last_seen_at
+        """,
+        (
+            message.chat.id,
+            message.from_user.id,
+            display_name(message),
+            random.choice(PROFILE_NICKNAMES),
+            topic,
+            now,
+        ),
+    )
+    if topic == "debt":
+        conn.execute(
+            "UPDATE user_profiles SET debt_questions = debt_questions + 1 WHERE chat_id = ? AND user_id = ?",
+            (message.chat.id, message.from_user.id),
+        )
+    conn.commit()
+    return conn.execute(
+        "SELECT * FROM user_profiles WHERE chat_id = ? AND user_id = ?",
+        (message.chat.id, message.from_user.id),
+    ).fetchone()
+
+
+def active_thread(conn: sqlite3.Connection, chat_id: int) -> sqlite3.Row | None:
+    row = conn.execute("SELECT * FROM seriy_threads WHERE chat_id = ?", (chat_id,)).fetchone()
+    if not row:
+        return None
+    if int(time.time()) - row["last_message_at"] > CONFLICT_TTL_SECONDS:
+        conn.execute("DELETE FROM seriy_threads WHERE chat_id = ?", (chat_id,))
+        conn.commit()
+        return None
+    return row
+
+
+def bump_thread(conn: sqlite3.Connection, message: Message, topic: str, amount: int = 1) -> sqlite3.Row | None:
+    if not message.from_user:
+        return None
+    now = int(time.time())
+    existing = active_thread(conn, message.chat.id)
+    if existing and existing["user_id"] == message.from_user.id:
+        heat = min(12, existing["heat"] + amount)
+    else:
+        heat = amount
+    conn.execute(
+        """
+        INSERT INTO seriy_threads(chat_id, user_id, full_name, topic, heat, last_message_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(chat_id) DO UPDATE SET
+            user_id = excluded.user_id,
+            full_name = excluded.full_name,
+            topic = excluded.topic,
+            heat = excluded.heat,
+            last_message_at = excluded.last_message_at
+        """,
+        (message.chat.id, message.from_user.id, display_name(message), topic, heat, now),
+    )
+    conn.execute(
+        "UPDATE user_profiles SET seriy_replies = seriy_replies + 1, conflict_level = MAX(conflict_level, ?) WHERE chat_id = ? AND user_id = ?",
+        (heat, message.chat.id, message.from_user.id),
+    )
+    conn.commit()
+    return conn.execute("SELECT * FROM seriy_threads WHERE chat_id = ?", (message.chat.id,)).fetchone()
+
+
+def heat_phrase(heat: int) -> str:
+    if heat >= 9:
+        return "Уровень конфликта: я уже ору, вру, потею и топлю себя как профессиональный долбоеб."
+    if heat >= 6:
+        return "Уровень конфликта: пошла грязная перепалка, я уже сам не вывожу, но продолжаю."
+    if heat >= 3:
+        return "Уровень конфликта: я начинаю дерзить, потому что фактов против меня слишком дохуя."
+    return "Уровень конфликта: пока разминаюсь, но уже готов обосраться уверенно."
+
+
+def profile_phrase(profile: sqlite3.Row | None) -> str:
+    if not profile:
+        return ""
+    bits = [f"Для меня ты теперь: {profile['nickname']}."]
+    if profile["debt_questions"] >= 2:
+        bits.append(f"Про деньги ты уже доебывался {profile['debt_questions']} раз, я веду мутный учет.")
+    if profile["conflict_level"] >= 5:
+        bits.append("Мы с тобой уже сцеплялись, так что я заранее обижен и готов нести хуйню.")
+    return " ".join(bits)
+
+
+def recent_responses(conn: sqlite3.Connection, chat_id: int, limit: int = 25) -> list[str]:
+    rows = conn.execute(
+        """
+        SELECT text FROM response_history
+        WHERE chat_id = ?
+        ORDER BY created_at DESC
+        LIMIT ?
+        """,
+        (chat_id, limit),
+    ).fetchall()
+    return [row["text"] for row in rows]
+
+
+def remember_response(conn: sqlite3.Connection, chat_id: int, text: str) -> None:
+    conn.execute(
+        "INSERT INTO response_history(chat_id, text, created_at) VALUES (?, ?, ?)",
+        (chat_id, text[:700], int(time.time())),
+    )
+    conn.execute(
+        """
+        DELETE FROM response_history
+        WHERE chat_id = ?
+          AND id NOT IN (
+              SELECT id FROM response_history
+              WHERE chat_id = ?
+              ORDER BY created_at DESC
+              LIMIT 80
+          )
+        """,
+        (chat_id, chat_id),
+    )
+    conn.commit()
+
+
+def too_similar(text: str, previous: list[str]) -> bool:
+    words = set(normalize_text(text).split())
+    if not words:
+        return False
+    for old in previous:
+        old_words = set(normalize_text(old).split())
+        if len(words & old_words) / max(1, min(len(words), len(old_words))) > 0.62:
+            return True
+    return False
+
+
+async def reply_unique(message: Message, factory) -> None:
+    with connect() as conn:
+        previous = recent_responses(conn, message.chat.id)
+    text = factory()
+    for _ in range(5):
+        if not too_similar(text, previous):
+            break
+        text = factory()
+    with connect() as conn:
+        remember_response(conn, message.chat.id, text)
+    await reply_alive(message, text)
+
+
+async def answer_unique(message: Message, factory) -> None:
+    with connect() as conn:
+        previous = recent_responses(conn, message.chat.id)
+    text = factory()
+    for _ in range(5):
+        if not too_similar(text, previous):
+            break
+        text = factory()
+    with connect() as conn:
+        remember_response(conn, message.chat.id, text)
+    await answer_alive(message, text)
+
+
+def schedule_event(conn: sqlite3.Connection, chat_id: int, event_type: str, payload: dict, delay_seconds: int) -> None:
+    conn.execute(
+        """
+        INSERT INTO seriy_events(chat_id, event_type, payload, due_at)
+        VALUES (?, ?, ?, ?)
+        """,
+        (chat_id, event_type, json.dumps(payload, ensure_ascii=False), int(time.time()) + delay_seconds),
+    )
+    conn.commit()
+
+
+def due_events(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    return conn.execute(
+        """
+        SELECT * FROM seriy_events
+        WHERE done = 0 AND due_at <= ?
+        ORDER BY due_at
+        LIMIT 20
+        """,
+        (int(time.time()),),
+    ).fetchall()
+
+
+def mark_event_done(conn: sqlite3.Connection, event_id: int) -> None:
+    conn.execute("UPDATE seriy_events SET done = 1 WHERE id = ?", (event_id,))
+    conn.commit()
+
+
+def event_text(row: sqlite3.Row) -> str:
+    try:
+        payload = json.loads(row["payload"] or "{}")
+    except json.JSONDecodeError:
+        payload = {}
+    target = payload.get("target_name") or "чат"
+    amount = payload.get("amount") or random.randrange(100, 5001, 100)
+    if row["event_type"] == "loan_excuse":
+        return (
+            f"{target}, по тем {amount} ₽ не начинай.\n\n"
+            f"{loan_generated_evasion()}\n\n"
+            "Я уже почти перевел, просто деньги увидели мой уровень ответственности и встали на аварийку."
+        )
+    if row["event_type"] == "loan_brag":
+        return (
+            f"Так, официально заявляю: эти {amount} ₽ мне уже нахуй не нужны.\n\n"
+            "У меня все хорошо, я почти богат, Веронике айфон, дочке айфон, всем айфоны, "
+            "а долг я не отдаю не потому что бедный, а потому что вы не поняли мою финансовую философию."
+        )
+    return random.choice(IDLE_ROASTS)
 
 
 FAKE_VOICE_LINES = [
@@ -2274,6 +2583,13 @@ def close_loan(conn: sqlite3.Connection, loan_id: int) -> None:
 async def send_loan_request(bot: Bot, chat_id: int) -> None:
     with connect() as conn:
         loan = create_loan(conn, chat_id)
+        payload = {
+            "amount": loan["amount"],
+            "target_name": loan["target_name"],
+            "reason": loan["reason"],
+        }
+        schedule_event(conn, chat_id, "loan_excuse", payload, random.randint(18 * 60, 35 * 60))
+        schedule_event(conn, chat_id, "loan_brag", payload, random.randint(55 * 60, 90 * 60))
     await send_alive(bot, chat_id, loan_request_text(loan), reply_markup=loan_keyboard(loan["id"]))
 
 
@@ -2686,6 +3002,7 @@ async def score_message(message: Message, bot: Bot) -> None:
         touch_chat(conn, message)
         state = current_seriy_state(conn, message.chat.id)
         remember_message(conn, message, topic)
+        profile = get_or_create_profile(conn, message, topic)
         memory = recent_context(conn, message.chat.id)
     command, argument = natural_command(text)
     if command:
@@ -2731,11 +3048,23 @@ async def score_message(message: Message, bot: Bot) -> None:
         upsert_user(conn, message, 0)
 
     if replies_to_bot(message):
-        await reply_alive(message, serg_contextual_reply(topic, state, memory, display_name(message)))
+        with connect() as conn:
+            thread = bump_thread(conn, message, topic, 2)
+            profile = get_or_create_profile(conn, message, topic)
+        await reply_unique(
+            message,
+            lambda: serg_contextual_reply(topic, state, memory, display_name(message), profile, thread),
+        )
         return
 
     if is_plain_serg_call(text):
-        await reply_alive(message, serg_contextual_reply("hello", state, memory, display_name(message)))
+        with connect() as conn:
+            thread = bump_thread(conn, message, "hello", 1)
+            profile = get_or_create_profile(conn, message, "hello")
+        await reply_unique(
+            message,
+            lambda: serg_contextual_reply("hello", state, memory, display_name(message), profile, thread),
+        )
         return
 
     if should_seriy_defend(text):
@@ -2743,21 +3072,27 @@ async def score_message(message: Message, bot: Bot) -> None:
             with connect() as conn:
                 if message.from_user:
                     add_seriy_hit(conn, message.chat.id, message.from_user.id, 0)
-        await reply_alive(
+        with connect() as conn:
+            thread = bump_thread(conn, message, topic, 2 if topic == "insult" else 1)
+            profile = get_or_create_profile(conn, message, topic)
+        await reply_unique(
             message,
-            serg_contextual_reply(topic, state, memory, display_name(message)),
+            lambda: serg_contextual_reply(topic, state, memory, display_name(message), profile, thread),
         )
         return
 
     if mentions_seriy(text) and random.random() < SERG_CHAT_REPLY_CHANCE:
-        await reply_alive(
+        with connect() as conn:
+            thread = bump_thread(conn, message, topic, 1)
+            profile = get_or_create_profile(conn, message, topic)
+        await reply_unique(
             message,
-            serg_contextual_reply(topic, state, memory, display_name(message)),
+            lambda: serg_contextual_reply(topic, state, memory, display_name(message), profile, thread),
         )
         return
 
     if random.random() < 0.035:
-        await reply_alive(message, serg_contextual_reply(topic, state, memory))
+        await reply_unique(message, lambda: serg_contextual_reply(topic, state, memory))
 
 
 async def idle_roast_loop(bot: Bot) -> None:
@@ -2768,6 +3103,7 @@ async def idle_roast_loop(bot: Bot) -> None:
             loan_rows = loan_chats(conn)
             stupidity_rows = stupidity_chats(conn)
             due_loan_rows = due_loans(conn)
+            event_rows = due_events(conn)
             now = int(time.time())
         for row in rows:
             try:
@@ -2810,6 +3146,14 @@ async def idle_roast_loop(bot: Bot) -> None:
         for loan in due_loan_rows:
             try:
                 await send_loan_final(bot, loan)
+            except Exception:
+                pass
+        for event in event_rows:
+            try:
+                text = event_text(event)
+                await send_alive(bot, event["chat_id"], text)
+                with connect() as conn:
+                    mark_event_done(conn, event["id"])
             except Exception:
                 pass
 
