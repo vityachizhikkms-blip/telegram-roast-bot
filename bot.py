@@ -1,6 +1,7 @@
 import asyncio
 import os
 import re
+import signal
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
@@ -323,7 +324,21 @@ async def main() -> None:
         setup_application(app, dp, bot=bot)
 
         await bot.set_webhook(f"{WEBHOOK_URL}{WEBHOOK_PATH}")
-        web.run_app(app, host="0.0.0.0", port=PORT)
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, host="0.0.0.0", port=PORT)
+        await site.start()
+
+        stop_event = asyncio.Event()
+        loop = asyncio.get_running_loop()
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            try:
+                loop.add_signal_handler(sig, stop_event.set)
+            except NotImplementedError:
+                pass
+
+        await stop_event.wait()
+        await runner.cleanup()
         return
 
     await bot.delete_webhook(drop_pending_updates=True)
