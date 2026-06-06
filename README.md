@@ -45,6 +45,10 @@ python bot.py
 - `/top` - топ участников
 - `/shop` - магазин виртуальных приколов
 - `/buy код` - купить прикол, например `/buy crown`
+- `/seriy_top` - топ засаживателей Серого
+- `/debt` - долги Серого
+- `/excuse` - тупая отмазка Серого
+- `/lore` - случайный факт из жизни Серого
 - `/sergey_on` - включить автоподъебы, когда чат затих
 - `/sergey_off` - выключить автоподъебы
 - `/sergey_ping` - проверить автоподъеб сразу
@@ -64,7 +68,11 @@ BOT_TOKEN=твой_токен_от_BotFather
 WEBHOOK_PATH=/webhook
 DATABASE_PATH=bot.db
 SPICY_MODE=true
-IDLE_ROAST_MINUTES=45
+DAY_START_HOUR=10
+DAY_END_HOUR=23
+DAY_UTC_OFFSET=10
+AUTO_ROAST_MIN_HOURS=3
+AUTO_ROAST_MAX_HOURS=5
 ```
 
 На Render `WEBHOOK_URL` можно не указывать: бот сам возьмет адрес из `RENDER_EXTERNAL_URL`.
