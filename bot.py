@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 import random
 import re
@@ -21,6 +22,7 @@ load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 DATABASE_PATH = os.getenv("DATABASE_PATH", "bot.db").strip()
+LORE_PATH = os.getenv("LORE_PATH", "lore.json").strip()
 SPICY_MODE = os.getenv("SPICY_MODE", "true").lower() in {"1", "true", "yes", "on"}
 WEBHOOK_URL = (
     os.getenv("WEBHOOK_URL", "").strip().rstrip("/")
@@ -38,9 +40,73 @@ LOAN_MAX_HOURS = float(os.getenv("LOAN_MAX_HOURS", "1.5"))
 SERIY_STUPIDITY_MINUTES = int(os.getenv("SERIY_STUPIDITY_MINUTES", "45"))
 STARTUP_BROADCAST = os.getenv("STARTUP_BROADCAST", "true").lower() in {"1", "true", "yes", "on"}
 SERG_CHAT_REPLY_CHANCE = float(os.getenv("SERG_CHAT_REPLY_CHANCE", "0.35"))
+FAKE_VOICE_CHANCE = float(os.getenv("FAKE_VOICE_CHANCE", "0.12"))
 
 if not BOT_TOKEN:
     raise RuntimeError("BOT_TOKEN is empty. Put your BotFather token into .env")
+
+
+DEFAULT_LORE = {
+    "moods": {
+        "bar_guard": "Сегодня я барный охранник Вероники: сижу, ревную, пью пиво и делаю вид, что это работа.",
+        "debt_panic": "Сегодня у меня режим должника в панике: любой вопрос про деньги я встречаю пиздежом и обидой.",
+        "work_liar": "Сегодня я великий работник на словах: Малмыж, завод и железка меня почти дождались, но я опять в баре.",
+        "camry_ghost": "Сегодня меня преследует Камри: машина ушла, стыд остался, а документы до сих пор смотрят с презрением.",
+        "exes_trial": "Сегодня у меня суд бывших: Бэлла со скринами, Кристина с вопросами, Вероника с барной ревностью.",
+    },
+    "mini_scenes": {
+        "loan_hunt": "сюжет дня: я вымогаю мелкие деньги под тупой предлог и потом делаю вид, что это не долг",
+        "job_fraud": "сюжет дня: я устраиваюсь сразу в три места, но физически добираюсь только до пива",
+        "camry_case": "сюжет дня: Камри, Бэлла, штрафстоянка и мои попытки выглядеть не виноватым",
+        "bar_watch": "сюжет дня: я охраняю Веронику в баре так, будто мне за это платят уважением",
+        "exes_crossover": "сюжет дня: бывшие сверяют мои версии, а я пытаюсь наебать календарь",
+    },
+    "topic_facts": {
+        "debt": [
+            "я сначала говорю 'на следующей неделе', потом 'к концу месяца', потом 'после зарплаты', а потом делаю лицо, будто это вы плохо слушали",
+            "если я обещал вернуть, это еще не значит, что деньги в курсе",
+            "мой долг живет дольше некоторых отношений, потому что у него сильная воля и слабый хозяин",
+        ],
+        "camry": [
+            "Камри у меня была не машина, а передвижной архив позора",
+            "Бэлла вытаскивала машину, покупатель ждал, а я вытаскивал из жопы новые версии",
+            "Камри продалась, но мой пиздеж остался на гарантии",
+        ],
+        "work": [
+            "Малмыж я почти покорил, просто не поехал, потому что легенда лучше дороги",
+            "судостроительный завод меня, возможно, ждал, но я берег интригу и не появился",
+            "железка под Хабаровском звучала солидно, пока не выяснилось, что туда поехал только мой пиздеж",
+        ],
+        "exes": [
+            "Бэлла держит скрины, Кристина держит вопросы, Вероника держит бар, а я держусь только на наглости",
+            "мои бывшие не ругаются, они синхронизируют доказательства",
+            "если Бэлла, Кристина и Вероника оказываются в одной истории, значит я опять пытался быть хитрым и обосрался",
+        ],
+        "bar": [
+            "бар у Вероники это мой офис, храм ревности и пункт временного укрытия от долгов",
+            "я называю это охраной, хотя со стороны это выглядит как пиво с тревожным лицом",
+            "в баре я защищаю Веронику от всех, кроме своего позора",
+        ],
+    },
+}
+
+
+def load_lore() -> dict:
+    try:
+        with open(LORE_PATH, "r", encoding="utf-8") as handle:
+            loaded = json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        return DEFAULT_LORE
+    merged = DEFAULT_LORE.copy()
+    for key, value in loaded.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = {**merged[key], **value}
+        else:
+            merged[key] = value
+    return merged
+
+
+LORE = load_lore()
 
 
 TOXIC_PATTERNS = [
@@ -1143,6 +1209,55 @@ def generated_serg_story() -> str:
         f"{random.choice(STORY_DIRTY_ENDINGS)}"
     )
 
+
+def state_text(state: sqlite3.Row) -> tuple[str, str]:
+    mood = LORE["moods"].get(state["mood"], random.choice(list(LORE["moods"].values())))
+    scene = LORE["mini_scenes"].get(state["mini_scene"], random.choice(list(LORE["mini_scenes"].values())))
+    return mood, scene
+
+
+def context_snippet(memory: list[sqlite3.Row], topic: str) -> str:
+    for row in memory:
+        if row["topic"] == topic and row["topic"] != "general":
+            return f"Я видел, {row['full_name']} только что вкидывал про это, так что не делайте вид, что тема сама родилась."
+    if memory:
+        row = memory[0]
+        return f"Вы тут только что писали '{row['text'][:80]}', и мой мозг, к сожалению, решил в это влезть."
+    return "Контекста мало, зато уверенности у меня, как обычно, дохуя."
+
+
+def topic_fact(topic: str) -> str:
+    facts = LORE.get("topic_facts", {}).get(topic) or LORE.get("topic_facts", {}).get("debt") or []
+    return random.choice(facts) if facts else random.choice(FIRST_PERSON_LORE_FACTS)
+
+
+def serg_contextual_reply(topic: str, state: sqlite3.Row, memory: list[sqlite3.Row], addressed_name: str = "") -> str:
+    mood, scene = state_text(state)
+    name_part = f"{addressed_name}, " if addressed_name else ""
+    snippet = context_snippet(memory, topic)
+    if topic == "debt":
+        body = f"{loan_generated_evasion()}\n\n{topic_fact('debt')}"
+    elif topic == "camry":
+        body = f"{topic_fact('camry')}. {random.choice(STORY_CAMRY_BITS)}. И да, я опять не виноват, я просто рядом стоял с лицом финансового ДТП."
+    elif topic == "work":
+        body = f"{topic_fact('work')}. Я почти работал так много, что устал еще до выхода. Это не прогул, это карьерный трейлер без фильма."
+    elif topic == "exes":
+        body = f"{topic_fact('exes')}. {random.choice(STORY_CROSSOVERS)}"
+    elif topic == "bar":
+        body = f"{topic_fact('bar')}. {random.choice(STORY_BAR_BITS)}."
+    elif topic == "insult":
+        body = serg_generated_conflict_reply()
+    elif topic == "hello":
+        body = random.choice(DIRECT_SERG_REPLIES + [serg_generated_reply()])
+    else:
+        body = random.choice(SERG_CHATTER + [serg_generated_reply(), generated_serg_story()])
+    return (
+        f"{name_part}{body}\n\n"
+        f"{snippet}\n"
+        f"Состояние дня: {mood}\n"
+        f"Мини-сюжет: {scene}"
+    )
+
 WELCOME_TEXT = (
     "Ну че, дебилы, это я, Братишка Серый. Я зашел в чат и теперь буду сам себя топить.\n\n"
     "Я больше не бухгалтер мата. Мне похуй на сухой подсчет ваших матюков: я тут как живой Серый, который лезет "
@@ -1298,6 +1413,31 @@ def connect() -> sqlite3.Connection:
         )
         """
     )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS chat_memory (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            chat_id INTEGER NOT NULL,
+            user_id INTEGER,
+            full_name TEXT NOT NULL,
+            text TEXT NOT NULL,
+            topic TEXT NOT NULL,
+            created_at INTEGER NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS seriy_chat_state (
+            chat_id INTEGER PRIMARY KEY,
+            day_key TEXT NOT NULL,
+            mood TEXT NOT NULL,
+            mini_scene TEXT NOT NULL,
+            last_topic TEXT,
+            updated_at INTEGER NOT NULL
+        )
+        """
+    )
     conn.commit()
     return conn
 
@@ -1364,35 +1504,150 @@ def replies_to_bot(message: Message) -> bool:
     return bool(reply.from_user.is_bot)
 
 
-async def typing_pause(bot: Bot, chat_id: int, text: str = "") -> None:
+def detect_topic(text: str) -> str:
+    normalized = normalize_text(text)
+    checks = [
+        ("debt", ("долг", "долж", "бабк", "деньг", "верни", "отдай", "займ", "занял", "занимал", "перевод", "зарплат")),
+        ("camry", ("камри", "машин", "тачк", "штрафстоян", "площадк", "продал", "переоформ", "документ")),
+        ("work", ("малмыж", "малымыш", "работ", "завод", "судостро", "железк", "хабаровск", "устро")),
+        ("exes", ("бэлл", "белл", "кристин", "бывш", "вероник", "скрин", "переписк", "голосов")),
+        ("bar", ("бар", "наринэ", "нарине", "амурстал", "пиво", "бух", "охран", "ревн")),
+        ("insult", ("туп", "дебил", "долбо", "пиздабол", "алкаш", "хуесос", "дно", "обоср")),
+        ("hello", ("привет", "здаров", "салют", "серега", "серый")),
+    ]
+    for topic, words in checks:
+        if any(word in normalized for word in words):
+            return topic
+    return "general"
+
+
+def local_day_key() -> str:
+    tz = timezone(timedelta(hours=DAY_UTC_OFFSET))
+    return datetime.now(tz).strftime("%Y-%m-%d")
+
+
+def current_seriy_state(conn: sqlite3.Connection, chat_id: int) -> sqlite3.Row:
+    day_key = local_day_key()
+    row = conn.execute("SELECT * FROM seriy_chat_state WHERE chat_id = ?", (chat_id,)).fetchone()
+    if row and row["day_key"] == day_key:
+        return row
+    mood = random.choice(list(LORE["moods"].keys()))
+    mini_scene = random.choice(list(LORE["mini_scenes"].keys()))
+    now = int(time.time())
+    conn.execute(
+        """
+        INSERT INTO seriy_chat_state(chat_id, day_key, mood, mini_scene, updated_at)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(chat_id) DO UPDATE SET
+            day_key = excluded.day_key,
+            mood = excluded.mood,
+            mini_scene = excluded.mini_scene,
+            last_topic = NULL,
+            updated_at = excluded.updated_at
+        """,
+        (chat_id, day_key, mood, mini_scene, now),
+    )
+    conn.commit()
+    return conn.execute("SELECT * FROM seriy_chat_state WHERE chat_id = ?", (chat_id,)).fetchone()
+
+
+def remember_message(conn: sqlite3.Connection, message: Message, topic: str) -> None:
+    text = (message.text or "").strip()
+    if not text:
+        return
+    conn.execute(
+        """
+        INSERT INTO chat_memory(chat_id, user_id, full_name, text, topic, created_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (
+            message.chat.id,
+            message.from_user.id if message.from_user else None,
+            display_name(message),
+            text[:500],
+            topic,
+            int(time.time()),
+        ),
+    )
+    conn.execute(
+        """
+        DELETE FROM chat_memory
+        WHERE chat_id = ?
+          AND id NOT IN (
+              SELECT id FROM chat_memory
+              WHERE chat_id = ?
+              ORDER BY created_at DESC
+              LIMIT 60
+          )
+        """,
+        (message.chat.id, message.chat.id),
+    )
+    conn.execute(
+        "UPDATE seriy_chat_state SET last_topic = ?, updated_at = ? WHERE chat_id = ?",
+        (topic, int(time.time()), message.chat.id),
+    )
+    conn.commit()
+
+
+def recent_context(conn: sqlite3.Connection, chat_id: int, limit: int = 6) -> list[sqlite3.Row]:
+    return conn.execute(
+        """
+        SELECT * FROM chat_memory
+        WHERE chat_id = ?
+        ORDER BY created_at DESC
+        LIMIT ?
+        """,
+        (chat_id, limit),
+    ).fetchall()
+
+
+FAKE_VOICE_LINES = [
+    "Ты че, еблан, реально думал, что я голосовое пишу? Его потом наполовину не удалишь и не переебешь факты.",
+    "Голосовое? Хуй там. Я теперь умный: текст хотя бы можно потом резать, как переписку с Бэллой.",
+    "Я начал писать голосовое и вспомнил: аудио, сука, не подрежешь так, чтобы она опять предлагала мне ебаться. Поэтому текстом.",
+    "Записывал голосовое, но передумал. Там же потом не вырежешь мой пиздеж и не сделаешь вид, что я красавчик.",
+    "Голосовые опасны: скажешь лишнее, потом не удалишь половину, не склеишь обратно и не обвинишь телефон.",
+    "Я хотел голосом, но голосовые против меня. Скрины хотя бы можно криво обрезать, а аудио сразу палит долбоеба.",
+]
+
+
+async def typing_pause(bot: Bot, chat_id: int, text: str = "") -> str:
     delay = min(12.0, max(5.0, len(text) / 75)) + random.uniform(0.4, 1.4)
+    action = "record_voice" if random.random() < FAKE_VOICE_CHANCE else "typing"
     try:
-        await bot.send_chat_action(chat_id, "typing")
+        await bot.send_chat_action(chat_id, action)
         if delay > 5:
             await asyncio.sleep(delay / 3)
-            await bot.send_chat_action(chat_id, "typing")
+            await bot.send_chat_action(chat_id, action)
             await asyncio.sleep(delay / 3)
-            await bot.send_chat_action(chat_id, "typing")
+            await bot.send_chat_action(chat_id, action)
             await asyncio.sleep(delay / 3)
         else:
             await asyncio.sleep(delay)
     except Exception:
         await asyncio.sleep(min(delay, 5.0))
+    return action
+
+
+def maybe_fake_voice_text(text: str, action: str) -> str:
+    if action != "record_voice":
+        return text
+    return f"{random.choice(FAKE_VOICE_LINES)}\n\n{text}"
 
 
 async def answer_alive(message: Message, text: str, **kwargs) -> None:
-    await typing_pause(message.bot, message.chat.id, text)
-    await message.answer(text, **kwargs)
+    action = await typing_pause(message.bot, message.chat.id, text)
+    await message.answer(maybe_fake_voice_text(text, action), **kwargs)
 
 
 async def reply_alive(message: Message, text: str, **kwargs) -> None:
-    await typing_pause(message.bot, message.chat.id, text)
-    await message.reply(text, **kwargs)
+    action = await typing_pause(message.bot, message.chat.id, text)
+    await message.reply(maybe_fake_voice_text(text, action), **kwargs)
 
 
 async def send_alive(bot: Bot, chat_id: int, text: str, **kwargs) -> None:
-    await typing_pause(bot, chat_id, text)
-    await bot.send_message(chat_id, text, **kwargs)
+    action = await typing_pause(bot, chat_id, text)
+    await bot.send_message(chat_id, maybe_fake_voice_text(text, action), **kwargs)
 
 
 def normalize_text(text: str) -> str:
@@ -2425,9 +2680,13 @@ async def ask_loan_callback(query: CallbackQuery) -> None:
 async def score_message(message: Message, bot: Bot) -> None:
     if not message.from_user or message.from_user.is_bot:
         return
+    text = message.text or ""
+    topic = detect_topic(text)
     with connect() as conn:
         touch_chat(conn, message)
-    text = message.text or ""
+        state = current_seriy_state(conn, message.chat.id)
+        remember_message(conn, message, topic)
+        memory = recent_context(conn, message.chat.id)
     command, argument = natural_command(text)
     if command:
         if command == "story":
@@ -2472,11 +2731,11 @@ async def score_message(message: Message, bot: Bot) -> None:
         upsert_user(conn, message, 0)
 
     if replies_to_bot(message):
-        await reply_alive(message, serg_generated_conflict_reply())
+        await reply_alive(message, serg_contextual_reply(topic, state, memory, display_name(message)))
         return
 
     if is_plain_serg_call(text):
-        await reply_alive(message, random.choice(DIRECT_SERG_REPLIES + [serg_generated_reply(), serg_generated_conflict_reply()]))
+        await reply_alive(message, serg_contextual_reply("hello", state, memory, display_name(message)))
         return
 
     if should_seriy_defend(text):
@@ -2486,19 +2745,19 @@ async def score_message(message: Message, bot: Bot) -> None:
                     add_seriy_hit(conn, message.chat.id, message.from_user.id, 0)
         await reply_alive(
             message,
-            random.choice(SERIY_DEFENSE_REPLIES + SERG_CHATTER + [serg_generated_conflict_reply(), loan_generated_evasion()]),
+            serg_contextual_reply(topic, state, memory, display_name(message)),
         )
         return
 
     if mentions_seriy(text) and random.random() < SERG_CHAT_REPLY_CHANCE:
         await reply_alive(
             message,
-            random.choice(SERG_CHATTER + DIRECT_SERG_REPLIES + FIRST_PERSON_LORE_FACTS + [serg_generated_reply()]),
+            serg_contextual_reply(topic, state, memory, display_name(message)),
         )
         return
 
     if random.random() < 0.035:
-        await reply_alive(message, random.choice(SERG_CHATTER + [serg_generated_reply()]))
+        await reply_alive(message, serg_contextual_reply(topic, state, memory))
 
 
 async def idle_roast_loop(bot: Bot) -> None:
