@@ -4,6 +4,12 @@
 
 Бот специально не нацелен на реального человека. "Виртуальный Серега" в коде - игровой персонаж.
 
+## Быстрый деплой
+
+[Deploy to Render](https://render.com/deploy?repo=https://github.com/vityachizhikkms-blip/telegram-roast-bot)
+
+При создании сервиса Render попросит переменную `BOT_TOKEN`. Вставь туда токен от `@BotFather`.
+
 ## Установка
 
 1. Создай бота через `@BotFather` и получи токен.
@@ -52,11 +58,12 @@ python bot.py
 
 ```env
 BOT_TOKEN=твой_токен_от_BotFather
-WEBHOOK_URL=https://адрес-твоего-сервиса
 WEBHOOK_PATH=/webhook
 DATABASE_PATH=bot.db
 SPICY_MODE=true
 ```
+
+На Render `WEBHOOK_URL` можно не указывать: бот сам возьмет адрес из `RENDER_EXTERNAL_URL`.
 
 Команда запуска:
 

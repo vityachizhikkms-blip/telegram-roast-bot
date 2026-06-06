@@ -8,11 +8,11 @@ services:
     envVars:
       - key: BOT_TOKEN
         sync: false
-      - key: WEBHOOK_URL
-        sync: false
       - key: WEBHOOK_PATH
         value: /webhook
       - key: DATABASE_PATH
         value: bot.db
       - key: SPICY_MODE
         value: "true"
+      - key: PYTHON_VERSION
+        value: 3.12.8

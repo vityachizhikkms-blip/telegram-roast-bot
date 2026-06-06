@@ -18,9 +18,12 @@ load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 DATABASE_PATH = os.getenv("DATABASE_PATH", "bot.db").strip()
 SPICY_MODE = os.getenv("SPICY_MODE", "true").lower() in {"1", "true", "yes", "on"}
-WEBHOOK_URL = os.getenv("WEBHOOK_URL", "").strip().rstrip("/")
+WEBHOOK_URL = (
+    os.getenv("WEBHOOK_URL", "").strip().rstrip("/")
+    or os.getenv("RENDER_EXTERNAL_URL", "").strip().rstrip("/")
+)
 WEBHOOK_PATH = os.getenv("WEBHOOK_PATH", "/webhook").strip() or "/webhook"
-PORT = int(os.getenv("PORT", "8080"))
+PORT = int(os.getenv("PORT", "10000"))
 
 if not BOT_TOKEN:
     raise RuntimeError("BOT_TOKEN is empty. Put your BotFather token into .env")
