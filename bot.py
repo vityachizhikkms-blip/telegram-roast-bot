@@ -73,6 +73,13 @@ SERIY_ATTACK_PATTERNS = [
     re.compile(r"\bхуесос\w*", re.IGNORECASE),
 ]
 
+SERIY_DIRECT_PATTERNS = [
+    re.compile(r"\bсер(ы|о|ё|е|г|ж)\w*[,!?:]?", re.IGNORECASE),
+    re.compile(r"\bбратишк[аиу]?\s+сер\w*[,!?:]?", re.IGNORECASE),
+    re.compile(r"\bэй[, ]+сер\w*", re.IGNORECASE),
+    re.compile(r"\bалло[, ]+сер\w*", re.IGNORECASE),
+]
+
 RANKS = [
     (0, "Случайный свидетель Серого"),
     (5, "Подмастерье хуевой телеги"),
@@ -269,6 +276,126 @@ LORE_FACTS = [
     "Дама из Наринэ видела Серого трезвым. Никто ей не поверил.",
 ]
 
+SERIY_DEFENSE_REPLIES = [
+    "Вы че доебались, я все контролирую. Просто деньги временно находятся у других людей.",
+    "Я не бухал, я проводил дегустацию жизненных ошибок. Это разные вещи, дебилы.",
+    "Камри я не проебал, я ее освободил от налогового давления.",
+    "Бывшая сама все не так поняла. Я ей говорил: 'мы почти семья', а не 'я верну деньги'.",
+    "Я никому не должен. Это вы просто неправильно воспринимаете слово 'занял'.",
+    "Я не изменял, я тестировал устойчивость отношений в полевых условиях.",
+    "Айфоны всем будут. Просто поставщик пока находится в моей фантазии.",
+    "Я бы уже все отдал, но Кристина морально заблокировала мой финансовый поток.",
+    "Я нормальный. Это чат токсичный и Камри была невезучая.",
+    "Вы смеетесь, а я между прочим почти вышел в плюс. Правда, минус пока сильнее.",
+    "Я не алкаш, я социально активный дегустатор пива.",
+    "Долги — это не долги, это подписка на мое доверие.",
+    "Я не тупой, я просто думаю медленно, зато с отмазками.",
+    "Бэлла сказала, что я красавчик. Ну ладно, не сказала, но могла бы.",
+    "Я бывшую не кинул, я дал ей возможность развиваться без моих денег.",
+]
+
+SERIY_STORIES = [
+    (
+        "История Серого номер один.\n\n"
+        "Серый занял 1500 на 'срочную тему', пропал на три часа, потом вернулся с пивом и сказал, "
+        "что тема решилась сама. Деньги, правда, тоже решились сами и исчезли нахуй."
+    ),
+    (
+        "Однажды Серый поехал катать бывшую на Камри, но по дороге вспомнил, что Камри надо продать, "
+        "бывшей надо соврать, а деньги надо занять. В итоге продал уверенность, соврал себе и занял у чата."
+    ),
+    (
+        "Серый рассказывал, что не изменял бывшей, потому что 'технически мы тогда были в паузе'. "
+        "Пауза длилась 17 минут, две кружки пива и одну поездку на Камри."
+    ),
+    (
+        "Бэлла попросила Серого на такси. Серый занял у Кристины, сказал Бэлле 'я решу', "
+        "а сам уехал в Наринэ доказывать бармену, что он финансово стабильный. Бармен не поверил."
+    ),
+    (
+        "Серый как-то сказал: 'Я завтра всем верну'. На следующий день он вернул только слово 'завтра' "
+        "и то в потрепанном состоянии."
+    ),
+    (
+        "История про айфоны.\n\n"
+        "Серый обещал всем купить по айфону, потому что 'деньги будут вечером'. Вечером были пиво, бывшая, "
+        "туманная схема и фраза: 'ну вы же понимаете, рынок просел'."
+    ),
+    (
+        "Один раз Серый попытался вести бюджет. В графе доходы написал 'скоро', в графе расходы — 'бывшие', "
+        "а в графе остаток — 'не ебите мозги'."
+    ),
+    (
+        "Серый продал Камри и сказал, что это инвестиция в свободу. Через час попросил занять на такси, "
+        "потому что свобода оказалась пешком."
+    ),
+    (
+        "Кристина спросила у Серого, где деньги. Серый ответил: 'в обороте'. Оборот сидел в Наринэ, "
+        "пил пиво и называл себя стратегией."
+    ),
+    (
+        "Серый однажды кинул бывшую так глупо, что она даже не обиделась — просто поставила ему диагноз "
+        "'ну это Серый' и пошла жить дальше."
+    ),
+    (
+        "На Амурстале Серый рассказывал, что он почти предприниматель. Его бизнес-модель: занять у одного, "
+        "пообещать второму, потратить с третьей и обидеться на всех."
+    ),
+    (
+        "Серый приехал на Камри к бывшей, сказал 'я изменился', потом через десять минут попросил зарядку, "
+        "деньги и не задавать лишних вопросов. Изменился, конечно: стал еще хуже."
+    ),
+    (
+        "Когда Серый говорит 'без палева', палево уже стоит рядом, курит и записывает показания.",
+    ),
+    (
+        "Серый пытался объяснить бывшей, почему у него в телефоне другая бывшая. Сказал, что это архивный материал. "
+        "Архив почему-то писал ему 'я соскучилась'."
+    ),
+    (
+        "История про пиво.\n\n"
+        "Серый сказал, что возьмет одну бутылку. Через час у него было ноль денег, три отмазки, "
+        "две бывшие в переписке и уверенность, что все идет нормально."
+    ),
+    (
+        "Серый однажды занял у человека, которому уже был должен. Это называется финансовый ремейк, "
+        "или как он сказал: 'брат, ну ты же уже в теме'."
+    ),
+    (
+        "Бывшие Серого собрались обсудить, кто кому что должен. Через пять минут выяснилось, что должен Серый, "
+        "всем, за все, включая моральный ущерб Камри."
+    ),
+    (
+        "Серый обещал бывшей романтическую поездку. Романтика была такая: заправка в долг, пиво на сдачу, "
+        "и фраза 'не начинай, я устал'."
+    ),
+    (
+        "Однажды Серый сказал, что он не пьет, а 'снимает стресс'. Стресс после этого написал заявление "
+        "и попросил больше не связывать его с Серым."
+    ),
+    (
+        "Серый хотел кинуть бывшую красиво, но получилось как всегда: тупо, дешево и с просьбой занять до понедельника.",
+    ),
+    (
+        "История с Камри закончилась тем, что Камри ушла к новому хозяину, бывшая ушла от Серого, "
+        "а Серый остался с пивом и фразой 'да мне и так норм'."
+    ),
+    (
+        "Серый как-то доказывал, что у него дохуя денег. Доказательство: он показал скрин чужого баланса "
+        "и сказал, что 'почти то же самое'."
+    ),
+    (
+        "Когда Серый говорит 'я не вру', где-то бывшая открывает переписку, Камри глохнет, "
+        "а долг автоматически становится больше."
+    ),
+    (
+        "Серый пытался жить честно, но на второй день понял, что честность не дает пиво в долг.",
+    ),
+    (
+        "Самая короткая история Серого: занял, выпил, забыл. Самая длинная: его отмазка после этого.",
+    ),
+]
+
 LOAN_REASONS = [
     "срочно надо закрыть финансовую дыру после 'одного пива'",
     "на такси до здравого смысла, но водитель уже сомневается",
@@ -375,6 +502,8 @@ WELCOME_TEXT = (
     "/debt — долги Серого\n"
     "/excuse — тупая отмазка Серого\n"
     "/lore — факт из жизни Серого\n"
+    "/story — история из жизни Серого\n"
+    "/seriy — позвать Серого, чтобы он нес оправдания\n"
     "/sergey_on — включить автоподъебы\n"
     "/sergey_off — выключить\n"
     "/sergey_ping — пнуть чат сразу\n"
@@ -495,6 +624,16 @@ def connect() -> sqlite3.Connection:
         )
         """
     )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS used_stories (
+            chat_id INTEGER NOT NULL,
+            story_index INTEGER NOT NULL,
+            used_at INTEGER NOT NULL,
+            PRIMARY KEY (chat_id, story_index)
+        )
+        """
+    )
     conn.commit()
     return conn
 
@@ -525,6 +664,23 @@ def seriy_bonus(text: str) -> tuple[int, str | None]:
     if hits >= 3:
         return 10, random.choice(SERIY_ATTACK_REPLIES).format(bonus=10)
     return 7, random.choice(SERIY_ATTACK_REPLIES).format(bonus=7)
+
+
+def mentions_seriy(text: str) -> bool:
+    return any(pattern.search(text) for pattern in SERIY_PATTERNS)
+
+
+def directly_addresses_seriy(text: str) -> bool:
+    lowered = text.lower()
+    return any(pattern.search(lowered) for pattern in SERIY_DIRECT_PATTERNS)
+
+
+def should_seriy_defend(text: str) -> bool:
+    if directly_addresses_seriy(text):
+        return True
+    if not mentions_seriy(text):
+        return False
+    return random.random() < 0.45
 
 
 def rank_for(points: int) -> str:
@@ -783,6 +939,29 @@ def seriy_stats(conn: sqlite3.Connection, chat_id: int) -> sqlite3.Row:
     )
     conn.commit()
     return conn.execute("SELECT * FROM seriy_stats WHERE chat_id = ?", (chat_id,)).fetchone()
+
+
+def next_story(conn: sqlite3.Connection, chat_id: int) -> str:
+    used_rows = conn.execute(
+        "SELECT story_index FROM used_stories WHERE chat_id = ?",
+        (chat_id,),
+    ).fetchall()
+    used = {row["story_index"] for row in used_rows}
+    if len(used) >= len(SERIY_STORIES):
+        conn.execute("DELETE FROM used_stories WHERE chat_id = ?", (chat_id,))
+        conn.commit()
+        used = set()
+    available = [index for index in range(len(SERIY_STORIES)) if index not in used]
+    story_index = random.choice(available)
+    conn.execute(
+        """
+        INSERT INTO used_stories(chat_id, story_index, used_at)
+        VALUES (?, ?, ?)
+        """,
+        (chat_id, story_index, int(time.time())),
+    )
+    conn.commit()
+    return SERIY_STORIES[story_index]
 
 
 def create_loan(conn: sqlite3.Connection, chat_id: int) -> sqlite3.Row:
@@ -1100,6 +1279,18 @@ async def lore_command(message: Message) -> None:
     await message.answer(random.choice(LORE_FACTS))
 
 
+@dp.message(Command("story"))
+async def story_command(message: Message) -> None:
+    with connect() as conn:
+        story = next_story(conn, message.chat.id)
+    await message.answer(story)
+
+
+@dp.message(Command("seriy"))
+async def seriy_command(message: Message) -> None:
+    await message.answer(random.choice(SERIY_DEFENSE_REPLIES))
+
+
 @dp.message(Command("sergey_on"))
 async def sergey_on_command(message: Message, bot: Bot) -> None:
     if not await is_chat_admin(bot, message):
@@ -1211,6 +1402,7 @@ async def score_message(message: Message) -> None:
     text = message.text or ""
     points = score_text(text)
     bonus_points, bonus_reply = seriy_bonus(text)
+    defense_reply = random.choice(SERIY_DEFENSE_REPLIES) if should_seriy_defend(text) else None
     if points <= 0:
         with connect() as conn:
             upsert_user(conn, message, 0)
@@ -1221,6 +1413,8 @@ async def score_message(message: Message) -> None:
                     f"{bonus_reply}\n"
                     f"+{bonus_points} бонусных очк. | всего: {row['points']} | ранг: {rank_for(row['points'])}"
                 )
+            elif defense_reply:
+                await message.reply(defense_reply)
         return
 
     with connect() as conn:
@@ -1238,6 +1432,8 @@ async def score_message(message: Message) -> None:
         lines = [reply]
         if bonus_reply:
             lines.append(bonus_reply)
+        elif defense_reply:
+            lines.append(defense_reply)
         if ex_reward:
             lines.append(ex_reward)
         lines.append(f"+{points + bonus_points} очк. | всего: {row['points']} | ранг: {rank_for(row['points'])}")
